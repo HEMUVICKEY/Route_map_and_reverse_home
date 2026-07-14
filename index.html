@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ultimate Walk Tracker Pro</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --danger: #ef476f;
+            --dark: #1d2b36;
+            --light: #f8f9fa;
+            --success: #06d6a0;
+            --warning: #f4a261;
+            --purple: #9b5de5;
+        }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            margin: 0; 
+            font-family: 'Inter', sans-serif; 
+            background: #eef2f5; 
+            height: 100dvh; 
+            display: flex; 
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header (Weather & Time) --- */
+        #header {
+            background: var(--dark);
+            color: white;
+            padding: 8px 16px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        #weatherWidget { background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 8px; }
+        #timeInfo span { color: var(--success); margin-left: 4px; }
+
+        /* --- Top Dashboard --- */
+        #dashboard {
+            display: flex;
+            background: white;
+            padding: 12px 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            z-index: 1000;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+        .stat-box { text-align: center; flex: 1; position: relative; }
+        .stat-box:not(:last-child)::after {
+            content: ''; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: #eee;
+        }
+        .stat-box h3 { margin: 0; font-size: 1.6em; font-weight: 800; color: var(--dark); }
+        .stat-box p { margin: 2px 0 0; font-size: 0.65em; color: #888; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;}
+
+        /* --- Map Area --- */
+        #map { 
+            flex-grow: 1; 
+            width: 100%; 
+            z-index: 1;
+            position: relative;
+            background: #ddd; /* Map loading color */
+        }
+        
+        /* Floating Map Controls */
+        .map-controls-wrapper {
+            position: absolute;
+            top: 15px; right: 15px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .map-card {
+            background: white; 
+            padding: 8px 12px; 
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .map-card select {
+            border: none; background: transparent; font-family: 'Inter', sans-serif; 
+            font-weight: 600; font-size: 0.85em; cursor: pointer; outline: none;
+        }
+        .map-btn {
+            width: 44px; height: 44px;
+            background: white; border: none; border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            font-size: 1.2em; cursor: pointer; color: var(--dark);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s, background 0.2s, color 0.2s;
+        }
+        .map-btn:active { transform: scale(0.95); }
+        .map-btn.active { background: var(--warning); color: white; }
+
+        /* --- Bottom Controls --- */
+        .controls {
+            background: white;
+            padding: 12px 16px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+        button {
+            padding: 14px 16px; 
+            font-size: 1em; 
+            cursor: pointer;
+            border: none; 
+            border-radius: 14px; 
+            font-weight: 700; 
+            color: white;
+            transition: transform 0.1s, background 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            font-family: 'Inter', sans-serif;
+        }
+        button:active { transform: scale(0.96); }
+        
+        #startBtn { background: var(--primary); flex: 2; }
+        #startBtn.recording { background: var(--danger); animation: pulse 2s infinite; }
+        #homeBtn { background: var(--dark); flex: 1.5; }
+        #shareBtn { background: var(--light); color: var(--dark); flex: 0.5; font-size: 1.2em; padding: 0; }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 71, 111, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(239, 71, 111, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 71, 111, 0); }
+        }
+
+        /* Custom Leaflet Marker Styles */
+        .pulse-marker {
+            border-radius: 50%;
+            animation: pulse-gps 2s infinite;
+        }
+        @keyframes pulse-gps {
+            0% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(67, 97, 238, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+    <div id="timeInfo">
+        Start: <span id="startTimeTxt">--:--</span> | Home ETA: <span id="etaHomeTxt">--:--</span>
+    </div>
+    <div id="weatherWidget">🌤️ 72°F</div>
+</div>
+
+<!-- Top Live Stats -->
+<div id="dashboard">
+    <div class="stat-box">
+        <h3 id="stepsCount">0</h3>
+        <p>Steps</p>
+    </div>
+    <div class="stat-box">
+        <h3 id="distanceCount">0.00</h3>
+        <p>KM</p>
+    </div>
+    <div class="stat-box">
+        <h3 id="speedCount">0.0</h3>
+        <p>km/h</p>
+    </div>
+</div>
+
+<!-- Map Container -->
+<div id="map">
+    <div class="map-controls-wrapper">
+        <div class="map-card">
+            <select id="mapStyle" onchange="changeMapStyle()">
+                <option value="streets">Standard</option>
+                <option value="satellite">Satellite</option>
+                <option value="dark">Dark Mode</option>
+                <option value="topo">Topographic</option>
+            </select>
+        </div>
+        <button class="map-btn" id="addLocBtn" onclick="toggleMode('loc')" title="Add Location">➕</button>
+        <button class="map-btn" id="addFriendHouseBtn" onclick="toggleMode('friendHouse')" title="Add Friend's House">🏡</button>
+        <button class="map-btn" id="addFriendBtn" onclick="toggleMode('friend')" title="Add Walking Friend">👤</button>
+        <button class="map-btn" onclick="locateMe()" title="Find Me">📍</button>
+        <button class="map-btn" onclick="resetTrip()" title="Reset Trip">🗑️</button>
+    </div>
+</div>
+
+<!-- Bottom Controls -->
+<div class="controls">
+    <button id="startBtn">Start Walk</button>
+    <button id="homeBtn">Route Home</button>
+    <button id="shareBtn" onclick="shareLocation()" title="Share Link">🔗</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // --- 1. INITIALIZE MAP ---
+    const map = L.map('map', { zoomControl: false, doubleClickZoom: false }).setView([40.7128, -74.0060], 16);
+    let currentLayer;
+
+    function changeMapStyle() {
+        const style = document.getElementById('mapStyle').value;
+        if (currentLayer) map.removeLayer(currentLayer);
+
+        if (style === 'satellite') currentLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' });
+        else if (style === 'dark') currentLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: 'CARTO' });
+        else if (style === 'topo') currentLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: 'OpenTopoMap' });
+        else currentLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' });
+        
+        currentLayer.addTo(map);
+    }
+    changeMapStyle(); 
+
+    // --- 2. STATE VARIABLES ---
+    let walkPath = [];
+    let walkPolyline = L.polyline([], {color: '#4361ee', weight: 6, lineCap: 'round'}).addTo(map);
+    let homePolyline = L.polyline([], {color: '#ef476f', weight: 5, dashArray: '5, 10'}).addTo(map);
+    let friendHouseLine = L.polyline([], {color: '#9b5de5', weight: 3, dashArray: '2, 8'}).addTo(map);
+    
+    let watchId = null;
+    let homeMarker = null;
+    let userMarker = null;
+    let friendHouseMarker = null;
+    let walkingFriendMarker = null;
+    let customLocations = [];
+    let startTime = null;
+
+    let activeMode = null; // Can be 'loc', 'friendHouse', or 'friend'
+    let totalDistance = 0; 
+    let stepCount = 0;
+    let lastPos = null;
+    let lastTimestamp = 0;
+    let currentSpeed = 0;
+
+    // --- 3. MAP CLICK HANDLER (Unified to fix bugs) ---
+    map.on('click', (e) => {
+        if (!activeMode) return;
+
+        if (activeMode === 'loc') {
+            const name = prompt("Enter name for this location:", "My Spot");
+            if (name) {
+                const icon = L.divIcon({ className: '', html: '<div style="font-size: 28px; transform: translate(-12px, -28px);">📌</div>', iconSize: [28, 28] });
+                const marker = L.marker(e.latlng, {icon}).addTo(map).bindPopup(`<b>${name}</b>`);
+                customLocations.push(marker);
+            }
+        } 
+        else if (activeMode === 'friendHouse') {
+            if (friendHouseMarker) map.removeLayer(friendHouseMarker);
+            const icon = L.divIcon({ className: '', html: '<div style="font-size: 32px; transform: translate(-16px, -32px);">🏡</div>', iconSize: [32, 32] });
+            
+            friendHouseMarker = L.marker(e.latlng, {icon}).addTo(map);
+            
+            // Double click to remove
+            friendHouseMarker.on('dblclick', () => {
+                map.removeLayer(friendHouseMarker);
+                friendHouseLine.setLatLngs([]);
+                friendHouseMarker = null;
+                alert("Friend's house removed.");
+            });
+            
+            friendHouseMarker.bindPopup("<b>Friend's House</b><br><button onclick='removeFriendHouse()'>Remove House</button>");
+            if (lastPos) friendHouseLine.setLatLngs([lastPos, e.latlng]);
+            alert("Friend's House added! Double-click it to remove.");
+        }
+        else if (activeMode === 'friend') {
+            if (walkingFriendMarker) map.removeLayer(walkingFriendMarker);
+            const icon = L.divIcon({ className: '', html: '<div style="font-size: 28px; transform: translate(-12px, -28px);">🏃</div>', iconSize: [28, 28] });
+            walkingFriendMarker = L.marker(e.latlng, {icon}).addTo(map).bindPopup("Walking Friend");
+            alert("Walking Friend added to map!");
+        }
+        
+        toggleMode(activeMode); // Turn off mode after action
+    });
+
+    function toggleMode(mode) {
+        activeMode = activeMode === mode ? null : mode;
+        
+        document.getElementById('addLocBtn').classList.remove('active');
+        document.getElementById('addFriendHouseBtn').classList.remove('active');
+        document.getElementById('addFriendBtn').classList.remove('active');
+        
+        if (activeMode === 'loc') document.getElementById('addLocBtn').classList.add('active');
+        if (activeMode === 'friendHouse') document.getElementById('addFriendHouseBtn').classList.add('active');
+        if (activeMode === 'friend') document.getElementById('addFriendBtn').classList.add('active');
+    }
+
+    // --- 4. START BUTTON LOGIC ---
+    const startBtn = document.getElementById('startBtn');
+    startBtn.addEventListener('click', async () => {
+        if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+            startBtn.innerText = "Resume Walk";
+            startBtn.classList.remove('recording');
+            return;
+        }
+
+        if (typeof DeviceMotionEvent.requestPermission === 'function') {
+            try {
+                const permission = await DeviceMotionEvent.requestPermission();
+                if (permission === 'granted') window.addEventListener('devicemotion', handleMotion);
+            } catch (e) { console.error(e); }
+        } else {
+            window.addEventListener('devicemotion', handleMotion);
+        }
+
+        startBtn.innerText = "Pause Walk";
+        startBtn.classList.add('recording');
+
+        if (!homeMarker) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                const homeCoords = [pos.coords.latitude, pos.coords.longitude];
+                const icon = L.divIcon({ className: '', html: '<div style="font-size: 32px; transform: translate(-16px, -32px);">🏠</div>', iconSize: [32, 32] });
+                
+                homeMarker = L.marker(homeCoords, {icon}).addTo(map);
+                homeMarker.bindPopup("<b>Home Base</b><br><button onclick='removeHome()'>Remove Home</button>");
+                
+                // Double click to remove home
+                homeMarker.on('dblclick', () => {
+                    removeHome();
+                });
+
+                walkPath.push(homeCoords);
+                lastPos = homeCoords;
+                lastTimestamp = pos.timestamp;
+                map.setView(homeCoords, 17);
+                
+                startTime = new Date();
+                document.getElementById('startTimeTxt').innerText = startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }, err => alert("Cannot get initial location: " + err.message), { enableHighAccuracy: true });
+        }
+
+        watchId = navigator.geolocation.watchPosition(pos => {
+            const currentCoords = [pos.coords.latitude, pos.coords.longitude];
+            const currentTime = pos.timestamp;
+
+            if (lastPos) {
+                let distMoved = map.distance(lastPos, currentCoords);
+                
+                if (distMoved > 3) {
+                    totalDistance += distMoved;
+                    let timeDiffHours = (currentTime - lastTimestamp) / 3600000; 
+                    currentSpeed = (distMoved / 1000) / timeDiffHours;
+                    
+                    document.getElementById('distanceCount').innerText = (totalDistance / 1000).toFixed(2);
+                    document.getElementById('speedCount').innerText = isNaN(currentSpeed) ? 0 : currentSpeed.toFixed(1);
+                    
+                    walkPath.push(currentCoords);
+                    walkPolyline.setLatLngs(walkPath);
+                    
+                    // Live User Marker with Pulse
+                    if (userMarker) map.removeLayer(userMarker);
+                    userMarker = L.marker(currentCoords, {icon: L.divIcon({ className: 'pulse-marker', html: '<div style="width:16px;height:16px;background:#4361ee;border:3px solid white;border-radius:50%;"></div>', iconSize: [16, 16] })}).addTo(map);
+                    
+                    map.panTo(currentCoords); 
+                    lastPos = currentCoords;
+                    lastTimestamp = currentTime;
+
+                    if (friendHouseMarker) friendHouseLine.setLatLngs([currentCoords, friendHouseMarker.getLatLng()]);
+                    updateLiveETA();
+                }
+            }
+        }, err => alert("GPS Error: " + err.message), { enableHighAccuracy: true });
+    });
+
+    // --- 5. ROUTE HOME LOGIC ---
+    document.getElementById('homeBtn').addEventListener('click', () => {
+        if (walkPath.length < 2) { alert("You need to walk a bit further first!"); return; }
+        
+        if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+            startBtn.innerText = "Resume Walk";
+            startBtn.classList.remove('recording');
+        }
+        
+        const reversePath = [...walkPath].reverse();
+        homePolyline.setLatLngs(reversePath);
+        map.fitBounds(homePolyline.getBounds(), { padding: [50, 50] });
+        updateLiveETA();
+    });
+
+    // --- 6. GLOBAL HELPER FUNCTIONS ---
+    window.removeHome = function() {
+        if (!homeMarker) return;
+        map.removeLayer(homeMarker);
+        homeMarker = null;
+        homePolyline.setLatLngs([]);
+        walkPath = [];
+        walkPolyline.setLatLngs([]);
+        alert("Home removed. Please reset trip to start a new walk.");
+    };
+
+    window.removeFriendHouse = function() {
+        if (!friendHouseMarker) return;
+        map.removeLayer(friendHouseMarker);
+        friendHouseLine.setLatLngs([]);
+        friendHouseMarker = null;
+    };
+
+    window.locateMe = function() {
+        if (lastPos) map.panTo(lastPos);
+        else alert("Start walking to track your location.");
+    };
+
+    window.shareLocation = function() {
+        if (!lastPos) return alert("Start walking to share your location.");
+        // Simulated share link
+        const dummyUrl = `https://maps.example.com/walk?lat=${lastPos[0].toFixed(5)}&lng=${lastPos[1].toFixed(5)}`;
+        navigator.clipboard.writeText(dummyUrl).then(() => {
+            alert("Live location link copied to clipboard!");
+        }).catch(() => {
+            alert("Could not copy link. URL: " + dummyUrl);
+        });
+    };
+
+    window.resetTrip = function() {
+        if (!confirm("Reset everything for a new walk?")) return;
+
+        if (watchId) navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        startBtn.innerText = "Start Walk";
+        startBtn.classList.remove('recording');
+        
+        walkPath = [];
+        walkPolyline.setLatLngs([]);
+        homePolyline.setLatLngs([]);
+        friendHouseLine.setLatLngs([]);
+        
+        if (homeMarker) { map.removeLayer(homeMarker); homeMarker = null; }
+        if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+        if (friendHouseMarker) { map.removeLayer(friendHouseMarker); friendHouseMarker = null; }
+        if (walkingFriendMarker) { map.removeLayer(walkingFriendMarker); walkingFriendMarker = null; }
+
+        customLocations.forEach(m => map.removeLayer(m));
+        customLocations = [];
+
+        totalDistance = 0; stepCount = 0; currentSpeed = 0; lastPos = null; startTime = null;
+        document.getElementById('stepsCount').innerText = "0";
+        document.getElementById('distanceCount').innerText = "0.00";
+        document.getElementById('speedCount').innerText = "0.0";
+        document.getElementById('startTimeTxt').innerText = "--:--";
+        document.getElementById('etaHomeTxt').innerText = "--:--";
+    };
+
+    function updateLiveETA() {
+        if (currentSpeed > 1 && startTime) {
+            // ETA based on remaining path distance back to home
+            let timeHours = (totalDistance / 1000) / currentSpeed; // totalDistance acts as distance back home
+            let timeMinutes = Math.round(timeHours * 60);
+            let arrivalDate = new Date(Date.now() + timeMinutes * 60000);
+            let timeStr = arrivalDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('etaHomeTxt').innerText = `${timeStr} (${timeMinutes}m)`;
+        } else if (currentSpeed <= 1 && startTime) {
+            document.getElementById('etaHomeTxt').innerText = "Paused";
+        }
+    }
+
+    // --- 7. STEP COUNTER LOGIC ---
+    let isStepInProgress = false;
+    const STEP_THRESHOLD = 1.2; 
+    let lastStepTime = 0;
+
+    function handleMotion(event) {
+        if (!watchId) return; // Only count steps if actively walking
+        const acc = event.accelerationIncludingGravity;
+        if (!acc || acc.x === null || acc.y === null || acc.z === null) return;
+        
+        const magnitude = Math.sqrt(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z);
+        const delta = Math.abs(magnitude - 9.8); 
+        const now = Date.now();
+        
+        if (delta > STEP_THRESHOLD && !isStepInProgress && (now - lastStepTime > 300)) {
+            stepCount++;
+            document.getElementById('stepsCount').innerText = stepCount;
+            isStepInProgress = true;
+            lastStepTime = now;
+        } else if (delta < STEP_THRESHOLD) {
+            isStepInProgress = false;
+        }
+    }
+</script>
+</body>
+</html>
