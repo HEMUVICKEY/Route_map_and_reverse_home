@@ -1,180 +1,326 @@
 <!DOCTYPE html>
 <html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Route map V2</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ultimate Walk Tracker Pro</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
             --primary: #4361ee;
             --danger: #ef476f;
             --dark: #1d2b36;
+            --card: #ffffff;
             --light: #f8f9fa;
             --success: #06d6a0;
             --warning: #f4a261;
             --purple: #9b5de5;
+            --text: #1d2b36;
+            --muted: #8899aa;
+            --border: #e8ecf0;
+            --bg: #eef2f5;
+            --shadow: rgba(0,0,0,0.08);
         }
-        
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            margin: 0; 
-            font-family: 'Inter', sans-serif; 
-            background: #eef2f5; 
-            height: 100dvh; 
-            display: flex; 
+        .dark-mode {
+            --primary: #6b83f5;
+            --dark: #0f1923;
+            --card: #1b2838;
+            --light: #243447;
+            --text: #e0e8f0;
+            --muted: #6b8299;
+            --border: #2a3a4a;
+            --bg: #0a1520;
+            --shadow: rgba(0,0,0,0.3);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            height: 100dvh;
+            display: flex;
             flex-direction: column;
             overflow: hidden;
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
         }
 
-        /* --- Header (Weather & Time) --- */
+        /* Toast */
+        #toastContainer {
+            position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+            z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+        }
+        .toast {
+            background: var(--dark); color: white; padding: 10px 20px; border-radius: 12px;
+            font-size: 0.85em; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+            animation: toastIn 0.4s ease, toastOut 0.4s ease 2.6s forwards; white-space: nowrap;
+        }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.warning { border-left: 4px solid var(--warning); }
+        .toast.danger { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--primary); }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+
+        /* Header */
         #header {
-            background: var(--dark);
-            color: white;
-            padding: 8px 16px;
-            font-size: 0.85em;
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
+            background: var(--dark); color: white; padding: 8px 14px;
+            font-size: 0.78em; font-weight: 600; display: flex;
+            justify-content: space-between; align-items: center; flex-shrink: 0;
         }
-        #weatherWidget { background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 8px; }
-        #timeInfo span { color: var(--success); margin-left: 4px; }
+        .header-left, .header-right { display: flex; align-items: center; gap: 8px; }
+        #weatherWidget {
+            background: rgba(255,255,255,0.12); padding: 4px 10px; border-radius: 8px;
+            cursor: pointer; font-size: 0.9em; transition: background 0.2s;
+        }
+        #weatherWidget:hover { background: rgba(255,255,255,0.2); }
+        .header-btn {
+            background: rgba(255,255,255,0.1); border: none; color: white; width: 30px; height: 30px;
+            border-radius: 8px; cursor: pointer; font-size: 0.85em; display: flex;
+            align-items: center; justify-content: center; transition: background 0.2s;
+        }
+        .header-btn:hover { background: rgba(255,255,255,0.2); }
+        .save-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); display: inline-block; }
+        .save-dot.saving { animation: blink 0.6s ease infinite; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
 
-        /* --- Top Dashboard --- */
+        /* Dashboard */
         #dashboard {
-            display: flex;
-            background: white;
-            padding: 12px 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            z-index: 1000;
-            border-bottom: 1px solid #eee;
-            flex-shrink: 0;
+            display: flex; background: var(--card); padding: 10px 8px;
+            box-shadow: 0 2px 12px var(--shadow); z-index: 1000;
+            border-bottom: 1px solid var(--border); flex-shrink: 0;
+            overflow-x: auto; -webkit-overflow-scrolling: touch;
         }
-        .stat-box { text-align: center; flex: 1; position: relative; }
+        #dashboard::-webkit-scrollbar { display: none; }
+        .stat-box {
+            text-align: center; min-width: 80px; flex-shrink: 0;
+            padding: 4px 10px; position: relative;
+        }
         .stat-box:not(:last-child)::after {
-            content: ''; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: #eee;
+            content: ''; position: absolute; right: 0; top: 15%; height: 70%;
+            width: 1px; background: var(--border);
         }
-        .stat-box h3 { margin: 0; font-size: 1.6em; font-weight: 800; color: var(--dark); }
-        .stat-box p { margin: 2px 0 0; font-size: 0.65em; color: #888; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;}
+        .stat-box h3 { font-size: 1.35em; font-weight: 800; color: var(--text); line-height: 1.1; }
+        .stat-box p { font-size: 0.58em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 2px; }
 
-        /* --- Map Area --- */
-        #map { 
-            flex-grow: 1; 
-            width: 100%; 
-            z-index: 1;
-            position: relative;
-            background: #ddd; /* Map loading color */
-        }
-        
-        /* Floating Map Controls */
+        /* Map */
+        #map { flex-grow: 1; width: 100%; z-index: 1; position: relative; background: var(--bg); }
+
+        /* Map Controls */
         .map-controls-wrapper {
-            position: absolute;
-            top: 15px; right: 15px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            position: absolute; top: 12px; right: 12px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
         }
         .map-card {
-            background: white; 
-            padding: 8px 12px; 
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            background: var(--card); padding: 6px 10px; border-radius: 10px;
+            box-shadow: 0 4px 15px var(--shadow);
         }
         .map-card select {
-            border: none; background: transparent; font-family: 'Inter', sans-serif; 
-            font-weight: 600; font-size: 0.85em; cursor: pointer; outline: none;
+            border: none; background: transparent; font-family: 'Inter', sans-serif;
+            font-weight: 600; font-size: 0.8em; cursor: pointer; outline: none; color: var(--text);
         }
         .map-btn {
-            width: 44px; height: 44px;
-            background: white; border: none; border-radius: 50%;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            font-size: 1.2em; cursor: pointer; color: var(--dark);
-            display: flex; align-items: center; justify-content: center;
-            transition: transform 0.2s, background 0.2s, color 0.2s;
+            width: 42px; height: 42px; background: var(--card); border: none; border-radius: 50%;
+            box-shadow: 0 3px 12px var(--shadow); font-size: 1.05em; cursor: pointer;
+            color: var(--text); display: flex; align-items: center; justify-content: center;
+            transition: transform 0.15s, background 0.2s, color 0.2s;
         }
-        .map-btn:active { transform: scale(0.95); }
+        .map-btn:active { transform: scale(0.92); }
         .map-btn.active { background: var(--warning); color: white; }
+        .map-btn i { pointer-events: none; }
 
-        /* --- Bottom Controls --- */
-        .controls {
-            background: white;
-            padding: 12px 16px;
-            box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
-            display: flex;
-            gap: 10px;
-            z-index: 1000;
-            border-top: 1px solid #eee;
+        /* Zoom Controls */
+        .zoom-controls {
+            position: absolute; bottom: 20px; left: 12px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .zoom-btn {
+            width: 38px; height: 38px; background: var(--card); border: 1px solid var(--border);
+            font-size: 1.2em; cursor: pointer; color: var(--text); display: flex;
+            align-items: center; justify-content: center; transition: background 0.2s;
+        }
+        .zoom-btn:first-child { border-radius: 10px 10px 0 0; }
+        .zoom-btn:last-child { border-radius: 0 0 10px 10px; }
+        .zoom-btn:hover { background: var(--light); }
+
+        /* Route Panel */
+        #routePanel {
+            position: absolute; bottom: 0; left: 0; right: 0; z-index: 1001;
+            background: var(--card); border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 25px rgba(0,0,0,0.15); transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); max-height: 55vh;
+            display: flex; flex-direction: column;
+        }
+        #routePanel.open { transform: translateY(0); }
+        .route-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 10px auto 6px; flex-shrink: 0; }
+        .route-modes {
+            display: flex; gap: 6px; padding: 6px 16px; overflow-x: auto; flex-shrink: 0;
+        }
+        .route-modes::-webkit-scrollbar { display: none; }
+        .mode-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+            padding: 8px 12px; border-radius: 12px; border: 2px solid var(--border);
+            background: transparent; cursor: pointer; min-width: 60px; transition: all 0.2s;
+            font-family: 'Inter', sans-serif; color: var(--text);
+        }
+        .mode-btn i { font-size: 1.2em; }
+        .mode-btn span { font-size: 0.6em; font-weight: 700; }
+        .mode-btn.active { border-color: var(--primary); background: rgba(67,97,238,0.1); color: var(--primary); }
+        .route-summary {
+            padding: 10px 16px; display: flex; gap: 20px; align-items: center;
+            border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
-        button {
-            padding: 14px 16px; 
-            font-size: 1em; 
-            cursor: pointer;
-            border: none; 
-            border-radius: 14px; 
-            font-weight: 700; 
-            color: white;
-            transition: transform 0.1s, background 0.3s;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            font-family: 'Inter', sans-serif;
+        .route-summary .big { font-size: 1.4em; font-weight: 800; }
+        .route-summary .sub { font-size: 0.7em; color: var(--muted); font-weight: 600; }
+        .route-summary .eta { margin-left: auto; text-align: right; }
+        .route-close-btn {
+            background: var(--light); border: none; width: 32px; height: 32px;
+            border-radius: 50%; cursor: pointer; font-size: 0.9em; display: flex;
+            align-items: center; justify-content: center; color: var(--muted); margin-left: auto;
         }
-        button:active { transform: scale(0.96); }
-        
+        .directions-list { flex: 1; overflow-y: auto; padding: 8px 16px 16px; }
+        .dir-step {
+            display: flex; gap: 12px; padding: 10px 0; align-items: flex-start;
+            border-bottom: 1px solid var(--border);
+        }
+        .dir-step:last-child { border-bottom: none; }
+        .dir-icon {
+            width: 32px; height: 32px; border-radius: 8px; background: var(--light);
+            display: flex; align-items: center; justify-content: center; font-size: 0.85em;
+            flex-shrink: 0; color: var(--primary);
+        }
+        .dir-text { font-size: 0.82em; font-weight: 600; line-height: 1.3; }
+        .dir-dist { font-size: 0.7em; color: var(--muted); font-weight: 600; margin-top: 2px; }
+
+        /* Custom Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998;
+            display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: var(--card); border-radius: 16px; padding: 24px;
+            width: 100%; max-width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalIn 0.3s ease;
+        }
+        @keyframes modalIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-box h3 { font-size: 1.1em; font-weight: 800; margin-bottom: 14px; }
+        .modal-box input {
+            width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px;
+            font-family: 'Inter', sans-serif; font-size: 0.95em; outline: none;
+            background: var(--light); color: var(--text); margin-bottom: 16px;
+        }
+        .modal-box input:focus { border-color: var(--primary); }
+        .modal-actions { display: flex; gap: 8px; }
+        .modal-actions button { flex: 1; padding: 10px; font-size: 0.9em; }
+        .btn-cancel { background: var(--light) !important; color: var(--text) !important; }
+        .btn-confirm { background: var(--primary); color: white; }
+
+        /* Bottom Controls */
+        .controls {
+            background: var(--card); padding: 10px 14px;
+            box-shadow: 0 -2px 12px var(--shadow); display: flex; gap: 8px;
+            z-index: 1000; border-top: 1px solid var(--border); flex-shrink: 0;
+        }
+        .controls button {
+            padding: 12px 14px; font-size: 0.9em; cursor: pointer; border: none;
+            border-radius: 12px; font-weight: 700; color: white;
+            transition: transform 0.1s, background 0.3s; box-shadow: 0 3px 10px var(--shadow);
+            font-family: 'Inter', sans-serif; display: flex; align-items: center;
+            justify-content: center; gap: 6px;
+        }
+        .controls button:active { transform: scale(0.96); }
         #startBtn { background: var(--primary); flex: 2; }
         #startBtn.recording { background: var(--danger); animation: pulse 2s infinite; }
         #homeBtn { background: var(--dark); flex: 1.5; }
-        #shareBtn { background: var(--light); color: var(--dark); flex: 0.5; font-size: 1.2em; padding: 0; }
-
+        #sosBtn { background: var(--danger); flex: 0.6; font-size: 0.75em; }
+        #shareBtn { background: var(--light); color: var(--text); flex: 0.6; }
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(239, 71, 111, 0.4); }
-            70% { box-shadow: 0 0 0 12px rgba(239, 71, 111, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 71, 111, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(239,71,111,0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(239,71,111,0); }
+            100% { box-shadow: 0 0 0 0 rgba(239,71,111,0); }
         }
 
-        /* Custom Leaflet Marker Styles */
-        .pulse-marker {
-            border-radius: 50%;
-            animation: pulse-gps 2s infinite;
+        /* Leaflet overrides */
+        .leaflet-container { font-family: 'Inter', sans-serif; }
+        .pulse-marker { border-radius: 50%; }
+        .pulse-marker div { animation: pulseGps 2s infinite; }
+        @keyframes pulseGps {
+            0% { box-shadow: 0 0 0 0 rgba(67,97,238,0.4); }
+            70% { box-shadow: 0 0 0 14px rgba(67,97,238,0); }
+            100% { box-shadow: 0 0 0 0 rgba(67,97,238,0); }
         }
-        @keyframes pulse-gps {
-            0% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4); }
-            70% { box-shadow: 0 0 0 15px rgba(67, 97, 238, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0); }
+        .leaflet-popup-content-wrapper { border-radius: 12px; font-family: 'Inter', sans-serif; }
+        .leaflet-popup-content { margin: 10px 14px; font-size: 0.85em; }
+        .popup-btn {
+            display: inline-block; padding: 5px 12px; margin-top: 6px; border-radius: 8px;
+            background: var(--danger); color: white; border: none; cursor: pointer;
+            font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.8em;
         }
+        .popup-btn.navigate { background: var(--primary); margin-right: 4px; }
     </style>
 </head>
 <body>
 
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<!-- Custom Modal -->
+<div class="modal-overlay" id="customModal">
+    <div class="modal-box">
+        <h3 id="modalTitle">Enter Name</h3>
+        <input type="text" id="modalInput" placeholder="Type here..." autocomplete="off" />
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-confirm" id="modalConfirmBtn">Confirm</button>
+        </div>
+    </div>
+</div>
+
 <!-- Header -->
 <div id="header">
-    <div id="timeInfo">
-        Start: <span id="startTimeTxt">--:--</span> | Home ETA: <span id="etaHomeTxt">--:--</span>
+    <div class="header-left">
+        <span class="save-dot" id="saveDot" title="Auto-save active"></span>
+        <span style="font-size:0.85em">
+            Start: <span id="startTimeTxt" style="color:var(--success)">--:--</span>
+            &nbsp;|&nbsp; Home ETA: <span id="etaHomeTxt" style="color:var(--warning)">--:--</span>
+        </span>
     </div>
-    <div id="weatherWidget">🌤️ 72°F</div>
+    <div class="header-right">
+        <div id="weatherWidget" onclick="toggleTempUnit()" title="Click to toggle unit">
+            <i class="fas fa-spinner fa-spin" style="font-size:0.8em"></i> Loading...
+        </div>
+        <button class="header-btn" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+            <i class="fas fa-moon" id="darkModeIcon"></i>
+        </button>
+    </div>
 </div>
 
-<!-- Top Live Stats -->
+<!-- Dashboard -->
 <div id="dashboard">
-    <div class="stat-box">
-        <h3 id="stepsCount">0</h3>
-        <p>Steps</p>
-    </div>
-    <div class="stat-box">
-        <h3 id="distanceCount">0.00</h3>
-        <p>KM</p>
-    </div>
-    <div class="stat-box">
-        <h3 id="speedCount">0.0</h3>
-        <p>km/h</p>
-    </div>
+    <div class="stat-box"><h3 id="stepsCount">0</h3><p>Steps</p></div>
+    <div class="stat-box"><h3 id="distanceCount">0.00</h3><p>KM</p></div>
+    <div class="stat-box"><h3 id="speedCount">0.0</h3><p>km/h</p></div>
+    <div class="stat-box"><h3 id="paceCount">--:--</h3><p>Pace</p></div>
+    <div class="stat-box"><h3 id="calorieCount">0</h3><p>kcal</p></div>
+    <div class="stat-box"><h3 id="durationCount">00:00</h3><p>Duration</p></div>
+    <div class="stat-box"><h3 id="elevationCount">--</h3><p>Elev (m)</p></div>
 </div>
 
-<!-- Map Container -->
+<!-- Map -->
 <div id="map">
     <div class="map-controls-wrapper">
         <div class="map-card">
@@ -185,308 +331,942 @@
                 <option value="topo">Topographic</option>
             </select>
         </div>
-        <button class="map-btn" id="addLocBtn" onclick="toggleMode('loc')" title="Add Location">➕</button>
-        <button class="map-btn" id="addFriendHouseBtn" onclick="toggleMode('friendHouse')" title="Add Friend's House">🏡</button>
-        <button class="map-btn" id="addFriendBtn" onclick="toggleMode('friend')" title="Add Walking Friend">👤</button>
-        <button class="map-btn" onclick="locateMe()" title="Find Me">📍</button>
-        <button class="map-btn" onclick="resetTrip()" title="Reset Trip">🗑️</button>
+        <button class="map-btn" id="addLocBtn" onclick="toggleMode('loc')" title="Add Location"><i class="fas fa-map-pin"></i></button>
+        <button class="map-btn" id="addFriendHouseBtn" onclick="toggleMode('friendHouse')" title="Add Friend's House"><i class="fas fa-house-chimney"></i></button>
+        <button class="map-btn" id="addFriendBtn" onclick="toggleMode('friend')" title="Add Walking Friend"><i class="fas fa-person-walking"></i></button>
+        <button class="map-btn" onclick="locateMe()" title="Find Me"><i class="fas fa-location-crosshairs"></i></button>
+        <button class="map-btn" onclick="confirmReset()" title="Reset Trip"><i class="fas fa-trash-can"></i></button>
+    </div>
+
+    <!-- Zoom Controls -->
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="map.zoomIn()"><i class="fas fa-plus"></i></button>
+        <button class="zoom-btn" onclick="map.zoomOut()"><i class="fas fa-minus"></i></button>
+    </div>
+
+    <!-- Route Panel -->
+    <div id="routePanel">
+        <div class="route-handle"></div>
+        <div class="route-modes" id="routeModes"></div>
+        <div class="route-summary" id="routeSummary" style="display:none">
+            <div>
+                <div class="big" id="routeDist">--</div>
+                <div class="sub">Distance</div>
+            </div>
+            <div>
+                <div class="big" id="routeTime">--</div>
+                <div class="sub">Duration</div>
+            </div>
+            <div class="eta">
+                <div class="big" id="routeEta">--</div>
+                <div class="sub">Arrival</div>
+            </div>
+            <button class="route-close-btn" onclick="closeRoutePanel()"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="directions-list" id="directionsList"></div>
     </div>
 </div>
 
 <!-- Bottom Controls -->
 <div class="controls">
-    <button id="startBtn">Start Walk</button>
-    <button id="homeBtn">Route Home</button>
-    <button id="shareBtn" onclick="shareLocation()" title="Share Link">🔗</button>
+    <button id="startBtn"><i class="fas fa-play"></i> Start Walk</button>
+    <button id="homeBtn"><i class="fas fa-route"></i> Route Home</button>
+    <button id="sosBtn" onclick="triggerSOS()"><i class="fas fa-phone"></i> SOS</button>
+    <button id="shareBtn" onclick="shareLocation()" title="Share"><i class="fas fa-link"></i></button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // --- 1. INITIALIZE MAP ---
-    const map = L.map('map', { zoomControl: false, doubleClickZoom: false }).setView([40.7128, -74.0060], 16);
-    let currentLayer;
+// ===================== CONFIGURATION =====================
+const ROUTE_MODES = {
+    car:    { profile: 'routed-car',  osrmProfile: 'driving', speed: 50,  label: 'Car',     icon: 'fa-car',         color: '#4361ee' },
+    bike:   { profile: 'routed-bike', osrmProfile: 'driving', speed: 20,  label: 'Bicycle',  icon: 'fa-bicycle',     color: '#06d6a0' },
+    walk:   { profile: 'routed-foot', osrmProfile: 'driving', speed: 5,   label: 'Walk',     icon: 'fa-person-walking', color: '#f4a261' },
+    run:    { profile: 'routed-foot', osrmProfile: 'driving', speed: 10,  label: 'Run',      icon: 'fa-person-running', color: '#ef476f' },
+    bus:    { profile: 'routed-car',  osrmProfile: 'driving', speed: 30,  label: 'Bus',      icon: 'fa-bus',         color: '#9b5de5' },
+    train:  { profile: null,           osrmProfile: null,       speed: 80,  label: 'Train',    icon: 'fa-train',       color: '#118ab2' },
+    flight: { profile: null,           osrmProfile: null,       speed: 500, label: 'Flight',   icon: 'fa-plane',       color: '#073b4c' }
+};
+const STEP_THRESHOLD = 1.2;
+const MIN_DIST_MOVE = 3; // meters
+const CALORIE_PER_METER_WALK = 0.04; // approx for 70kg person
+const SAVE_INTERVAL = 15000; // 15 seconds auto-save
 
-    function changeMapStyle() {
-        const style = document.getElementById('mapStyle').value;
-        if (currentLayer) map.removeLayer(currentLayer);
+// ===================== STATE =====================
+let walkPath = [];
+let totalDistance = 0;
+let stepCount = 0;
+let currentSpeed = 0;
+let lastPos = null;
+let lastTimestamp = 0;
+let startTime = null;
+let watchId = null;
+let homeMarker = null;
+let userMarker = null;
+let friendHouseMarker = null;
+let walkingFriendMarker = null;
+let customLocations = []; // [{marker, name}]
+let activeMode = null;
+let selectedRouteMode = 'car';
+let currentRouteData = null;
+let isDarkMode = false;
+let tempUnit = 'F'; // Fahrenheit default
+let weatherData = null;
+let elevationGain = 0;
+let lastElevation = null;
+let durationTimer = null;
+let isStepInProgress = false;
+let lastStepTime = 0;
+let lastMilestone = 0;
+let modalCallback = null;
 
-        if (style === 'satellite') currentLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' });
-        else if (style === 'dark') currentLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: 'CARTO' });
-        else if (style === 'topo') currentLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: 'OpenTopoMap' });
-        else currentLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' });
-        
-        currentLayer.addTo(map);
-    }
-    changeMapStyle(); 
+// ===================== MAP INIT =====================
+const map = L.map('map', {
+    zoomControl: false,
+    doubleClickZoom: true,
+    touchZoom: true,
+    scrollWheelZoom: true
+}).setView([40.7128, -74.0060], 15);
 
-    // --- 2. STATE VARIABLES ---
-    let walkPath = [];
-    let walkPolyline = L.polyline([], {color: '#4361ee', weight: 6, lineCap: 'round'}).addTo(map);
-    let homePolyline = L.polyline([], {color: '#ef476f', weight: 5, dashArray: '5, 10'}).addTo(map);
-    let friendHouseLine = L.polyline([], {color: '#9b5de5', weight: 3, dashArray: '2, 8'}).addTo(map);
-    
-    let watchId = null;
-    let homeMarker = null;
-    let userMarker = null;
-    let friendHouseMarker = null;
-    let walkingFriendMarker = null;
-    let customLocations = [];
-    let startTime = null;
+let currentLayer;
+function changeMapStyle() {
+    const style = document.getElementById('mapStyle').value;
+    if (currentLayer) map.removeLayer(currentLayer);
+    const opts = { attribution: '&copy; OpenStreetMap contributors', maxZoom: 19 };
+    if (style === 'satellite')
+        currentLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { ...opts, attribution: 'Esri' });
+    else if (style === 'dark')
+        currentLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { ...opts, attribution: 'CARTO' });
+    else if (style === 'topo')
+        currentLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { ...opts, attribution: 'OpenTopoMap' });
+    else
+        currentLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts);
+    currentLayer.addTo(map);
+    setTimeout(() => map.invalidateSize(), 200);
+}
+changeMapStyle();
+setTimeout(() => map.invalidateSize(), 500);
 
-    let activeMode = null; // Can be 'loc', 'friendHouse', or 'friend'
-    let totalDistance = 0; 
-    let stepCount = 0;
-    let lastPos = null;
-    let lastTimestamp = 0;
-    let currentSpeed = 0;
+// Polylines
+let walkPolyline = L.polyline([], { color: '#4361ee', weight: 6, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+let homePolyline = L.polyline([], { color: '#ef476f', weight: 5, dashArray: '8, 12' }).addTo(map);
+let friendHouseLine = L.polyline([], { color: '#9b5de5', weight: 3, dashArray: '4, 8' }).addTo(map);
+let routePolyline = L.polyline([], { color: '#4361ee', weight: 5, opacity: 0.8 }).addTo(map);
 
-    // --- 3. MAP CLICK HANDLER (Unified to fix bugs) ---
-    map.on('click', (e) => {
-        if (!activeMode) return;
-
-        if (activeMode === 'loc') {
-            const name = prompt("Enter name for this location:", "My Spot");
-            if (name) {
-                const icon = L.divIcon({ className: '', html: '<div style="font-size: 28px; transform: translate(-12px, -28px);">📌</div>', iconSize: [28, 28] });
-                const marker = L.marker(e.latlng, {icon}).addTo(map).bindPopup(`<b>${name}</b>`);
-                customLocations.push(marker);
-            }
-        } 
-        else if (activeMode === 'friendHouse') {
-            if (friendHouseMarker) map.removeLayer(friendHouseMarker);
-            const icon = L.divIcon({ className: '', html: '<div style="font-size: 32px; transform: translate(-16px, -32px);">🏡</div>', iconSize: [32, 32] });
-            
-            friendHouseMarker = L.marker(e.latlng, {icon}).addTo(map);
-            
-            // Double click to remove
-            friendHouseMarker.on('dblclick', () => {
-                map.removeLayer(friendHouseMarker);
-                friendHouseLine.setLatLngs([]);
-                friendHouseMarker = null;
-                alert("Friend's house removed.");
-            });
-            
-            friendHouseMarker.bindPopup("<b>Friend's House</b><br><button onclick='removeFriendHouse()'>Remove House</button>");
-            if (lastPos) friendHouseLine.setLatLngs([lastPos, e.latlng]);
-            alert("Friend's House added! Double-click it to remove.");
-        }
-        else if (activeMode === 'friend') {
-            if (walkingFriendMarker) map.removeLayer(walkingFriendMarker);
-            const icon = L.divIcon({ className: '', html: '<div style="font-size: 28px; transform: translate(-12px, -28px);">🏃</div>', iconSize: [28, 28] });
-            walkingFriendMarker = L.marker(e.latlng, {icon}).addTo(map).bindPopup("Walking Friend");
-            alert("Walking Friend added to map!");
-        }
-        
-        toggleMode(activeMode); // Turn off mode after action
+// ===================== ICONS =====================
+function makeIcon(emoji, size = 28) {
+    return L.divIcon({
+        className: '',
+        html: `<div style="font-size:${size}px;transform:translate(-${size/2}px,-${size}px);pointer-events:auto">${emoji}</div>`,
+        iconSize: [size, size], iconAnchor: [size/2, size]
     });
+}
+const homeIcon = makeIcon('🏠', 30);
+const friendHouseIcon = makeIcon('🏡', 28);
+const friendIcon = makeIcon('🏃', 26);
+const locIcon = makeIcon('📌', 24);
 
-    function toggleMode(mode) {
-        activeMode = activeMode === mode ? null : mode;
-        
-        document.getElementById('addLocBtn').classList.remove('active');
-        document.getElementById('addFriendHouseBtn').classList.remove('active');
-        document.getElementById('addFriendBtn').classList.remove('active');
-        
-        if (activeMode === 'loc') document.getElementById('addLocBtn').classList.add('active');
-        if (activeMode === 'friendHouse') document.getElementById('addFriendHouseBtn').classList.add('active');
-        if (activeMode === 'friend') document.getElementById('addFriendBtn').classList.add('active');
+function createUserMarkerIcon() {
+    return L.divIcon({
+        className: 'pulse-marker',
+        html: '<div style="width:18px;height:18px;background:#4361ee;border:3px solid white;border-radius:50%;box-shadow:0 0 10px rgba(67,97,238,0.5)"></div>',
+        iconSize: [18, 18], iconAnchor: [9, 9]
+    });
+}
+
+// ===================== TOAST =====================
+function showToast(msg, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    container.appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+}
+
+// ===================== CUSTOM MODAL =====================
+function openModal(title, placeholder, callback) {
+    const modal = document.getElementById('customModal');
+    document.getElementById('modalTitle').textContent = title;
+    const input = document.getElementById('modalInput');
+    input.value = '';
+    input.placeholder = placeholder || 'Type here...';
+    modal.classList.add('open');
+    modalCallback = callback;
+    setTimeout(() => input.focus(), 100);
+    document.getElementById('modalConfirmBtn').onclick = () => {
+        const val = input.value.trim();
+        if (val) { closeModal(); callback(val); }
+    };
+}
+function closeModal() {
+    document.getElementById('customModal').classList.remove('open');
+    modalCallback = null;
+}
+// Enter key in modal
+document.getElementById('modalInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && modalCallback) {
+        const val = e.target.value.trim();
+        if (val) { closeModal(); modalCallback(val); }
+    }
+});
+
+// ===================== MAP CLICK HANDLER =====================
+map.on('click', (e) => {
+    if (!activeMode) return;
+
+    if (activeMode === 'loc') {
+        openModal('Name This Location', 'e.g. Coffee Shop', (name) => {
+            const marker = L.marker(e.latlng, { icon: locIcon }).addTo(map);
+            marker.bindPopup(`<b>${name}</b><br><button class="popup-btn navigate" onclick="routeToPoint(${e.latlng.lat},${e.latlng.lng})">Navigate</button><button class="popup-btn" onclick="removeCustomLoc(this)">Remove</button>`);
+            customLocations.push({ marker, name, latlng: e.latlng });
+            showToast(`Location "${name}" added`, 'success');
+            saveToStorage();
+        });
+    }
+    else if (activeMode === 'friendHouse') {
+        if (friendHouseMarker) map.removeLayer(friendHouseMarker);
+        friendHouseMarker = L.marker(e.latlng, { icon: friendHouseIcon }).addTo(map);
+        friendHouseMarker.bindPopup(`<b>Friend's House</b><br><button class="popup-btn navigate" onclick="routeToPoint(${e.latlng.lat},${e.latlng.lng})">Navigate</button><button class="popup-btn" onclick="removeFriendHouse()">Remove</button>`);
+        if (lastPos) friendHouseLine.setLatLngs([lastPos, e.latlng]);
+        showToast("Friend's House placed!", 'success');
+        saveToStorage();
+    }
+    else if (activeMode === 'friend') {
+        if (walkingFriendMarker) map.removeLayer(walkingFriendMarker);
+        walkingFriendMarker = L.marker(e.latlng, { icon: friendIcon }).addTo(map);
+        walkingFriendMarker.bindPopup(`<b>Walking Friend</b><br><button class="popup-btn" onclick="removeWalkingFriend()">Remove</button>`);
+        showToast("Walking Friend added!", 'success');
+        saveToStorage();
     }
 
-    // --- 4. START BUTTON LOGIC ---
-    const startBtn = document.getElementById('startBtn');
-    startBtn.addEventListener('click', async () => {
-        if (watchId) {
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
-            startBtn.innerText = "Resume Walk";
-            startBtn.classList.remove('recording');
+    toggleMode(activeMode); // Turn off mode
+});
+
+// Remove handlers called from popups
+window.removeCustomLoc = function(btn) {
+    const popup = btn.closest('.leaflet-popup');
+    const leafletId = popup?.dataset?.leafletId;
+    customLocations = customLocations.filter(c => {
+        if (c.marker.isPopupOpen()) { map.removeLayer(c.marker); return false; }
+        return true;
+    });
+    showToast("Location removed", 'warning');
+    saveToStorage();
+};
+window.removeFriendHouse = function() {
+    if (!friendHouseMarker) return;
+    map.removeLayer(friendHouseMarker);
+    friendHouseMarker = null;
+    friendHouseLine.setLatLngs([]);
+    showToast("Friend's house removed", 'warning');
+    saveToStorage();
+};
+window.removeWalkingFriend = function() {
+    if (!walkingFriendMarker) return;
+    map.removeLayer(walkingFriendMarker);
+    walkingFriendMarker = null;
+    showToast("Walking friend removed", 'warning');
+    saveToStorage();
+};
+window.removeHome = function() {
+    if (!homeMarker) return;
+    map.removeLayer(homeMarker);
+    homeMarker = null;
+    homePolyline.setLatLngs([]);
+    showToast("Home removed", 'warning');
+    saveToStorage();
+};
+window.routeToPoint = function(lat, lng) {
+    if (!lastPos) { showToast("Start walking first to navigate", "warning"); return; }
+    calculateAndShowRoute(lastPos, [lat, lng]);
+};
+
+function toggleMode(mode) {
+    activeMode = activeMode === mode ? null : mode;
+    document.getElementById('addLocBtn').classList.toggle('active', activeMode === 'loc');
+    document.getElementById('addFriendHouseBtn').classList.toggle('active', activeMode === 'friendHouse');
+    document.getElementById('addFriendBtn').classList.toggle('active', activeMode === 'friend');
+    if (activeMode) showToast(`Tap on map to place ${mode === 'loc' ? 'location' : mode === 'friendHouse' ? "friend's house" : 'friend'}`, 'info');
+}
+
+// ===================== START / PAUSE WALK =====================
+const startBtn = document.getElementById('startBtn');
+startBtn.addEventListener('click', async () => {
+    if (watchId) {
+        // Pause
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        startBtn.innerHTML = '<i class="fas fa-play"></i> Resume Walk';
+        startBtn.classList.remove('recording');
+        clearInterval(durationTimer);
+        showToast("Walk paused", 'warning');
+        return;
+    }
+
+    // Request motion permission (iOS)
+    if (typeof DeviceMotionEvent?.requestPermission === 'function') {
+        try {
+            const perm = await DeviceMotionEvent.requestPermission();
+            if (perm === 'granted') window.addEventListener('devicemotion', handleMotion);
+        } catch (e) { console.warn('Motion permission denied'); }
+    } else {
+        window.addEventListener('devicemotion', handleMotion);
+    }
+
+    startBtn.innerHTML = '<i class="fas fa-pause"></i> Pause Walk';
+    startBtn.classList.add('recording');
+
+    // Set home on first start
+    if (!homeMarker && !lastPos) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            const c = [pos.coords.latitude, pos.coords.longitude];
+            setHome(c);
+            startPosWatch();
+        }, err => showToast("Cannot get location: " + err.message, 'danger'), { enableHighAccuracy: true });
+    } else {
+        startPosWatch();
+    }
+});
+
+function setHome(coords) {
+    if (homeMarker) map.removeLayer(homeMarker);
+    homeMarker = L.marker(coords, { icon: homeIcon }).addTo(map);
+    homeMarker.bindPopup(`<b>Home Base</b><br><button class="popup-btn navigate" onclick="routeToPoint(${coords[0]},${coords[1]})">Navigate Home</button><button class="popup-btn" onclick="removeHome()">Remove</button>`);
+    if (!lastPos) {
+        walkPath.push(coords);
+        lastPos = coords;
+        lastTimestamp = Date.now();
+        lastElevation = null;
+        map.setView(coords, 17, { animate: true });
+    }
+    startTime = startTime || new Date();
+    document.getElementById('startTimeTxt').textContent = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    saveToStorage();
+}
+
+function startPosWatch() {
+    if (watchId) return;
+    watchId = navigator.geolocation.watchPosition(pos => {
+        const c = [pos.coords.latitude, pos.coords.longitude];
+        const now = pos.timestamp;
+
+        if (lastPos) {
+            const distMoved = map.distance(lastPos, c);
+            if (distMoved > MIN_DIST_MOVE) {
+                totalDistance += distMoved;
+                const timeDiffH = (now - lastTimestamp) / 3600000;
+                currentSpeed = timeDiffH > 0 ? (distMoved / 1000) / timeDiffH : 0;
+
+                // Elevation
+                if (pos.coords.altitude !== null && lastElevation !== null) {
+                    const elevDiff = pos.coords.altitude - lastElevation;
+                    if (elevDiff > 0) elevationGain += elevDiff;
+                }
+                if (pos.coords.altitude !== null) lastElevation = pos.coords.altitude;
+
+                walkPath.push(c);
+                walkPolyline.setLatLngs(walkPath);
+
+                // User marker
+                if (userMarker) map.removeLayer(userMarker);
+                userMarker = L.marker(c, { icon: createUserMarkerIcon(), zIndexOffset: 1000 }).addTo(map);
+                map.panTo(c, { animate: true });
+
+                lastPos = c;
+                lastTimestamp = now;
+
+                // Friend house line
+                if (friendHouseMarker) friendHouseLine.setLatLngs([c, friendHouseMarker.getLatLng()]);
+
+                updateDashboard();
+                checkMilestone();
+                updateLiveETA();
+            }
+        } else {
+            lastPos = c;
+            lastTimestamp = now;
+            if (pos.coords.altitude !== null) lastElevation = pos.coords.altitude;
+        }
+    }, err => showToast("GPS Error: " + err.message, 'danger'), { enableHighAccuracy: true, maximumAge: 2000 });
+
+    // Duration timer
+    if (!durationTimer) {
+        durationTimer = setInterval(updateDuration, 1000);
+    }
+}
+
+// ===================== ROUTE HOME =====================
+document.getElementById('homeBtn').addEventListener('click', () => {
+    if (!lastPos) { showToast("Start walking first to set your position", "warning"); return; }
+    if (!homeMarker) { showToast("No home set yet. Start a walk to set home.", "warning"); return; }
+
+    // Pause walk while routing
+    if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        startBtn.innerHTML = '<i class="fas fa-play"></i> Resume Walk';
+        startBtn.classList.remove('recording');
+        clearInterval(durationTimer);
+    }
+
+    calculateAndShowRoute(lastPos, [homeMarker.getLatLng().lat, homeMarker.getLatLng().lng]);
+});
+
+// ===================== ROUTING =====================
+function buildRouteModeSelector() {
+    const container = document.getElementById('routeModes');
+    container.innerHTML = '';
+    Object.entries(ROUTE_MODES).forEach(([key, cfg]) => {
+        const btn = document.createElement('button');
+        btn.className = `mode-btn ${key === selectedRouteMode ? 'active' : ''}`;
+        btn.innerHTML = `<i class="fas ${cfg.icon}"></i><span>${cfg.label}</span>`;
+        btn.onclick = () => {
+            selectedRouteMode = key;
+            container.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Recalculate route
+            if (currentRouteData?.from && currentRouteData?.to) {
+                calculateAndShowRoute(currentRouteData.from, currentRouteData.to);
+            }
+        };
+        container.appendChild(btn);
+    });
+}
+
+async function calculateAndShowRoute(from, to) {
+    currentRouteData = { from, to };
+    const cfg = ROUTE_MODES[selectedRouteMode];
+    buildRouteModeSelector();
+
+    showToast(`Calculating ${cfg.label} route...`, 'info');
+
+    // For train/flight: straight line
+    if (!cfg.profile) {
+        const dist = map.distance(from, to);
+        const durSec = (dist / 1000 / cfg.speed) * 3600;
+        const straightCoords = [from, to];
+        displayRoute(straightCoords, dist, durSec, cfg, true);
+        return;
+    }
+
+    // Try OSRM routing
+    const osrmUrl = `https://routing.openstreetmap.de/${cfg.profile}/route/v1/${cfg.osrmProfile}/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson&steps=true`;
+
+    try {
+        const resp = await fetch(osrmUrl);
+        const data = await resp.json();
+        if (data.code !== 'Ok' || !data.routes?.length) throw new Error('No route');
+
+        const route = data.routes[0];
+        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]); // [lng,lat] → [lat,lng]
+        const steps = route.legs[0]?.steps || [];
+
+        // Adjust duration for mode speed
+        const routeDist = route.distance;
+        const adjustedDurSec = (routeDist / 1000 / cfg.speed) * 3600;
+
+        displayRoute(coords, routeDist, adjustedDurSec, cfg, false, steps);
+    } catch (err) {
+        console.warn('OSRM failed, falling back to straight line:', err);
+        const dist = map.distance(from, to);
+        const durSec = (dist / 1000 / cfg.speed) * 3600;
+        const roadEstimate = dist * 1.35; // road distance is ~35% longer
+        const adjustedDurSec2 = (roadEstimate / 1000 / cfg.speed) * 3600;
+        displayRoute([from, to], roadEstimate, adjustedDurSec2, cfg, true);
+    }
+}
+
+function displayRoute(coords, dist, durSec, cfg, isEstimate, steps = []) {
+    routePolyline.setLatLngs(coords);
+    routePolyline.setStyle({ color: cfg.color });
+    map.fitBounds(routePolyline.getBounds(), { padding: [60, 60] });
+
+    // Summary
+    document.getElementById('routeSummary').style.display = 'flex';
+    document.getElementById('routeDist').textContent = (dist / 1000).toFixed(1) + ' km';
+    document.getElementById('routeTime').textContent = formatDuration(durSec);
+    const eta = new Date(Date.now() + durSec * 1000);
+    document.getElementById('routeEta').textContent = eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Update home polyline too
+    homePolyline.setLatLngs(coords);
+
+    // Directions
+    const dirList = document.getElementById('directionsList');
+    dirList.innerHTML = '';
+
+    if (steps.length > 0) {
+        steps.forEach(step => {
+            const instr = getManeuverInstruction(step);
+            const iconClass = getDirectionIconClass(step.maneuver);
+            const stepDist = step.distance >= 1000
+                ? (step.distance / 1000).toFixed(1) + ' km'
+                : Math.round(step.distance) + ' m';
+            dirList.innerHTML += `
+                <div class="dir-step">
+                    <div class="dir-icon"><i class="fas ${iconClass}"></i></div>
+                    <div>
+                        <div class="dir-text">${instr}</div>
+                        <div class="dir-dist">${stepDist}</div>
+                    </div>
+                </div>`;
+        });
+    } else {
+        dirList.innerHTML = `
+            <div class="dir-step">
+                <div class="dir-icon"><i class="fas ${cfg.icon}"></i></div>
+                <div>
+                    <div class="dir-text">Direct ${cfg.label} route (estimated)</div>
+                    <div class="dir-dist">${(dist / 1000).toFixed(1)} km &middot; ${formatDuration(durSec)}</div>
+                </div>
+            </div>
+            <div class="dir-step">
+                <div class="dir-icon"><i class="fas fa-flag-checkered"></i></div>
+                <div>
+                    <div class="dir-text">Arrive at destination</div>
+                </div>
+            </div>`;
+    }
+
+    // Open route panel
+    document.getElementById('routePanel').classList.add('open');
+    showToast(`${cfg.Label || cfg.label} route: ${(dist / 1000).toFixed(1)} km, ${formatDuration(durSec)}`, 'success');
+}
+
+function getManeuverInstruction(step) {
+    const type = step.maneuver?.type || '';
+    const mod = step.maneuver?.modifier || '';
+    const name = step.name || 'unnamed road';
+    switch (type) {
+        case 'depart': return `Head ${mod || 'forward'} on ${name}`;
+        case 'arrive': return `Arrive at your destination`;
+        case 'turn': return `Turn ${mod} onto ${name}`;
+        case 'new name': return `Continue onto ${name}`;
+        case 'merge': return `Merge ${mod} onto ${name}`;
+        case 'fork': return `Take the ${mod} fork onto ${name}`;
+        case 'roundabout': return `Enter roundabout, exit onto ${name}`;
+        case 'rotary': return `Enter rotary, exit onto ${name}`;
+        case 'end of road': return `At the end, turn ${mod} onto ${name}`;
+        case 'continue': return `Continue ${mod} on ${name}`;
+        default: return `Continue on ${name}`;
+    }
+}
+
+function getDirectionIconClass(maneuver) {
+    const type = maneuver?.type || '';
+    const mod = maneuver?.modifier || '';
+    if (type === 'depart') return 'fa-location-arrow';
+    if (type === 'arrive') return 'fa-flag-checkered';
+    if (type === 'roundabout' || type === 'rotary') return 'fa-rotate-right';
+    if (mod.includes('sharp left')) return 'fa-arrow-left';
+    if (mod.includes('sharp right')) return 'fa-arrow-right';
+    if (mod.includes('slight left')) return 'fa-arrow-up';
+    if (mod.includes('slight right')) return 'fa-arrow-up';
+    if (mod.includes('left')) return 'fa-arrow-left';
+    if (mod.includes('right')) return 'fa-arrow-right';
+    if (mod.includes('uturn')) return 'fa-arrow-rotate-left';
+    return 'fa-arrow-up';
+}
+
+function closeRoutePanel() {
+    document.getElementById('routePanel').classList.remove('open');
+    routePolyline.setLatLngs([]);
+    currentRouteData = null;
+}
+
+function formatDuration(sec) {
+    if (sec < 60) return Math.round(sec) + ' sec';
+    if (sec < 3600) return Math.round(sec / 60) + ' min';
+    const h = Math.floor(sec / 3600);
+    const m = Math.round((sec % 3600) / 60);
+    return `${h}h ${m}m`;
+}
+
+// ===================== DASHBOARD =====================
+function updateDashboard() {
+    document.getElementById('stepsCount').textContent = stepCount;
+    document.getElementById('distanceCount').textContent = (totalDistance / 1000).toFixed(2);
+    document.getElementById('speedCount').textContent = currentSpeed > 0 ? currentSpeed.toFixed(1) : '0.0';
+
+    // Pace (min/km)
+    if (currentSpeed > 0.5) {
+        const paceMin = 60 / currentSpeed;
+        const pm = Math.floor(paceMin);
+        const ps = Math.round((paceMin - pm) * 60);
+        document.getElementById('paceCount').textContent = `${pm}:${String(ps).padStart(2, '0')}`;
+    } else {
+        document.getElementById('paceCount').textContent = '--:--';
+    }
+
+    // Calories
+    const cal = Math.round(totalDistance * CALORIE_PER_METER_WALK);
+    document.getElementById('calorieCount').textContent = cal;
+
+    // Elevation
+    if (lastElevation !== null) {
+        document.getElementById('elevationCount').textContent = Math.round(lastElevation);
+    }
+}
+
+function updateDuration() {
+    if (!startTime) return;
+    const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
+    const h = Math.floor(elapsed / 3600);
+    const m = Math.floor((elapsed % 3600) / 60);
+    const s = elapsed % 60;
+    if (h > 0) document.getElementById('durationCount').textContent = `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    else document.getElementById('durationCount').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function updateLiveETA() {
+    if (currentSpeed > 0.5 && homeMarker && lastPos) {
+        const distHome = map.distance(lastPos, [homeMarker.getLatLng().lat, homeMarker.getLatLng().lng]);
+        const timeMin = Math.round((distHome / 1000 / currentSpeed) * 60);
+        const eta = new Date(Date.now() + timeMin * 60000);
+        document.getElementById('etaHomeTxt').textContent = eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ` (${timeMin}m)`;
+    } else {
+        document.getElementById('etaHomeTxt').textContent = startTime ? 'Paused' : '--:--';
+    }
+}
+
+function checkMilestone() {
+    const km = totalDistance / 1000;
+    const milestones = [0.5, 1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 50];
+    for (const m of milestones) {
+        if (km >= m && lastMilestone < m) {
+            lastMilestone = m;
+            showToast(`Milestone reached: ${m} km!`, 'success');
+            if ('speechSynthesis' in window) {
+                const utter = new SpeechSynthesisUtterance(`You have reached ${m} kilometers!`);
+                utter.rate = 1.1;
+                speechSynthesis.speak(utter);
+            }
+        }
+    }
+}
+
+// ===================== STEP COUNTER =====================
+function handleMotion(event) {
+    if (!watchId) return;
+    const acc = event.accelerationIncludingGravity;
+    if (!acc || acc.x === null) return;
+    const mag = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+    const delta = Math.abs(mag - 9.8);
+    const now = Date.now();
+    if (delta > STEP_THRESHOLD && !isStepInProgress && (now - lastStepTime > 300)) {
+        stepCount++;
+        isStepInProgress = true;
+        lastStepTime = now;
+    } else if (delta < STEP_THRESHOLD * 0.6) {
+        isStepInProgress = false;
+    }
+}
+
+// ===================== WEATHER =====================
+async function fetchWeather(lat, lng) {
+    try {
+        const resp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&temperature_unit=fahrenheit`);
+        const data = await resp.json();
+        if (data.current_weather) {
+            weatherData = data.current_weather;
+            updateWeatherDisplay();
+        }
+    } catch (e) {
+        console.warn('Weather fetch failed:', e);
+        document.getElementById('weatherWidget').innerHTML = '<i class="fas fa-cloud"></i> N/A';
+    }
+}
+
+function updateWeatherDisplay() {
+    if (!weatherData) return;
+    const temp = weatherData.temperature;
+    const code = weatherData.weathercode;
+    const icon = weatherCodeToIcon(code);
+    const unit = tempUnit === 'F' ? '°F' : '°C';
+    const displayTemp = tempUnit === 'F' ? Math.round(temp) : Math.round((temp - 32) * 5 / 9);
+    document.getElementById('weatherWidget').innerHTML = `${icon} ${displayTemp}${unit}`;
+}
+
+function weatherCodeToIcon(code) {
+    if (code === 0) return '<i class="fas fa-sun" style="color:#f4a261"></i>';
+    if (code <= 3) return '<i class="fas fa-cloud-sun" style="color:#8899aa"></i>';
+    if (code <= 49) return '<i class="fas fa-smog" style="color:#8899aa"></i>';
+    if (code <= 59) return '<i class="fas fa-cloud-rain" style="color:#4361ee"></i>';
+    if (code <= 69) return '<i class="fas fa-cloud-showers-heavy" style="color:#4361ee"></i>';
+    if (code <= 79) return '<i class="fas fa-snowflake" style="color="#9b5de5""></i>';
+    if (code <= 84) return '<i class="fas fa-cloud-rain" style="color:#4361ee"></i>';
+    if (code <= 86) return '<i class="fas fa-snowflake" style="color:#9b5de5"></i>';
+    if (code <= 99) return '<i class="fas fa-bolt" style="color:#ef476f"></i>';
+    return '<i class="fas fa-cloud" style="color:#8899aa"></i>';
+}
+
+function toggleTempUnit() {
+    tempUnit = tempUnit === 'F' ? 'C' : 'F';
+    updateWeatherDisplay();
+    showToast(`Temperature unit: ${tempUnit === 'F' ? 'Fahrenheit' : 'Celsius'}`, 'info');
+}
+
+// ===================== DARK MODE =====================
+function toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    document.body.classList.toggle('dark-mode', isDarkMode);
+    document.getElementById('darkModeIcon').className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
+
+    // Auto switch map style
+    if (isDarkMode && document.getElementById('mapStyle').value === 'streets') {
+        document.getElementById('mapStyle').value = 'dark';
+        changeMapStyle();
+    } else if (!isDarkMode && document.getElementById('mapStyle').value === 'dark') {
+        document.getElementById('mapStyle').value = 'streets';
+        changeMapStyle();
+    }
+    saveToStorage();
+}
+
+// ===================== SOS =====================
+function triggerSOS() {
+    const lat = lastPos ? lastPos[0].toFixed(6) : 'unknown';
+    const lng = lastPos ? lastPos[1].toFixed(6) : 'unknown';
+    const msg = `EMERGENCY! I need help! My location: https://maps.google.com/?q=${lat},${lng}`;
+    if (confirm(`SOS Alert!\n\nSend emergency message with your location?\n\nLat: ${lat}, Lng: ${lng}`)) {
+        if (navigator.share) {
+            navigator.share({ title: 'SOS Emergency', text: msg }).catch(() => {});
+        } else {
+            navigator.clipboard.writeText(msg).then(() => showToast("Emergency location copied!", "danger"));
+        }
+        // Try to call emergency number
+        showToast("SOS sent! Call emergency services if needed.", "danger");
+    }
+}
+
+// ===================== SHARE =====================
+function shareLocation() {
+    if (!lastPos) return showToast("Start walking to share location", "warning");
+    const url = `https://maps.google.com/?q=${lastPos[0].toFixed(6)},${lastPos[1].toFixed(6)}`;
+    if (navigator.share) {
+        navigator.share({ title: 'My Walk Location', text: `Track my walk!`, url }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(url).then(() => showToast("Location link copied!", "success")).catch(() => showToast("URL: " + url, "info"));
+    }
+}
+
+// ===================== LOCATE ME =====================
+function locateMe() {
+    if (lastPos) map.setView(lastPos, 17, { animate: true });
+    else showToast("Start walking to track location", "warning");
+}
+
+// ===================== RESET =====================
+function confirmReset() {
+    // Custom confirm via toast action
+    if (confirm("Reset everything for a new walk? This cannot be undone.")) {
+        resetTrip();
+    }
+}
+
+function resetTrip() {
+    if (watchId) navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+    startBtn.innerHTML = '<i class="fas fa-play"></i> Start Walk';
+    startBtn.classList.remove('recording');
+    clearInterval(durationTimer);
+    durationTimer = null;
+
+    walkPath = [];
+    totalDistance = 0; stepCount = 0; currentSpeed = 0;
+    lastPos = null; lastTimestamp = 0; startTime = null;
+    lastElevation = null; elevationGain = 0; lastMilestone = 0;
+    isStepInProgress = false;
+
+    walkPolyline.setLatLngs([]);
+    homePolyline.setLatLngs([]);
+    friendHouseLine.setLatLngs([]);
+    routePolyline.setLatLngs([]);
+
+    [homeMarker, userMarker, friendHouseMarker, walkingFriendMarker].forEach(m => { if (m) map.removeLayer(m); });
+    homeMarker = null; userMarker = null; friendHouseMarker = null; walkingFriendMarker = null;
+
+    customLocations.forEach(c => map.removeLayer(c.marker));
+    customLocations = [];
+
+    closeRoutePanel();
+
+    document.getElementById('stepsCount').textContent = '0';
+    document.getElementById('distanceCount').textContent = '0.00';
+    document.getElementById('speedCount').textContent = '0.0';
+    document.getElementById('paceCount').textContent = '--:--';
+    document.getElementById('calorieCount').textContent = '0';
+    document.getElementById('durationCount').textContent = '00:00';
+    document.getElementById('elevationCount').textContent = '--';
+    document.getElementById('startTimeTxt').textContent = '--:--';
+    document.getElementById('etaHomeTxt').textContent = '--:--';
+
+    localStorage.removeItem('walkTrackerData');
+    showToast("Trip reset! Ready for a new walk.", "success");
+}
+
+// ===================== LOCAL STORAGE =====================
+function saveToStorage() {
+    const dot = document.getElementById('saveDot');
+    dot.classList.add('saving');
+    setTimeout(() => dot.classList.remove('saving'), 600);
+
+    const data = {
+        date: new Date().toDateString(),
+        walkPath,
+        totalDistance,
+        stepCount,
+        startTime: startTime ? startTime.toISOString() : null,
+        lastPos,
+        homePos: homeMarker ? [homeMarker.getLatLng().lat, homeMarker.getLatLng().lng] : null,
+        friendHousePos: friendHouseMarker ? [friendHouseMarker.getLatLng().lat, friendHouseMarker.getLatLng().lng] : null,
+        friendPos: walkingFriendMarker ? [walkingFriendMarker.getLatLng().lat, walkingFriendMarker.getLatLng().lng] : null,
+        customLocations: customLocations.map(c => ({ lat: c.latlng.lat, lng: c.latlng.lng, name: c.name })),
+        isDarkMode,
+        tempUnit,
+        lastMilestone,
+        elevationGain,
+        lastElevation
+    };
+    try {
+        localStorage.setItem('walkTrackerData', JSON.stringify(data));
+    } catch (e) { console.warn('Save failed:', e); }
+}
+
+function loadFromStorage() {
+    const saved = localStorage.getItem('walkTrackerData');
+    if (!saved) return;
+    try {
+        const data = JSON.parse(saved);
+
+        // Check if data is from today
+        if (data.date !== new Date().toDateString()) {
+            localStorage.removeItem('walkTrackerData');
+            showToast("Previous day data cleared. Fresh start!", "info");
             return;
         }
 
-        if (typeof DeviceMotionEvent.requestPermission === 'function') {
-            try {
-                const permission = await DeviceMotionEvent.requestPermission();
-                if (permission === 'granted') window.addEventListener('devicemotion', handleMotion);
-            } catch (e) { console.error(e); }
-        } else {
-            window.addEventListener('devicemotion', handleMotion);
+        walkPath = data.walkPath || [];
+        totalDistance = data.totalDistance || 0;
+        stepCount = data.stepCount || 0;
+        startTime = data.startTime ? new Date(data.startTime) : null;
+        lastPos = data.lastPos;
+        lastMilestone = data.lastMilestone || 0;
+        elevationGain = data.elevationGain || 0;
+        lastElevation = data.lastElevation;
+
+        if (data.isDarkMode) toggleDarkMode();
+        if (data.tempUnit) tempUnit = data.tempUnit;
+
+        // Restore polylines
+        walkPolyline.setLatLngs(walkPath);
+
+        // Restore markers
+        if (data.homePos) {
+            homeMarker = L.marker(data.homePos, { icon: homeIcon }).addTo(map);
+            homeMarker.bindPopup(`<b>Home Base</b><br><button class="popup-btn navigate" onclick="routeToPoint(${data.homePos[0]},${data.homePos[1]})">Navigate Home</button><button class="popup-btn" onclick="removeHome()">Remove</button>`);
+        }
+        if (data.friendHousePos) {
+            friendHouseMarker = L.marker(data.friendHousePos, { icon: friendHouseIcon }).addTo(map);
+            friendHouseMarker.bindPopup(`<b>Friend's House</b><br><button class="popup-btn navigate" onclick="routeToPoint(${data.friendHousePos[0]},${data.friendHousePos[1]})">Navigate</button><button class="popup-btn" onclick="removeFriendHouse()">Remove</button>`);
+            if (lastPos) friendHouseLine.setLatLngs([lastPos, data.friendHousePos]);
+        }
+        if (data.friendPos) {
+            walkingFriendMarker = L.marker(data.friendPos, { icon: friendIcon }).addTo(map);
+            walkingFriendMarker.bindPopup(`<b>Walking Friend</b><br><button class="popup-btn" onclick="removeWalkingFriend()">Remove</button>`);
+        }
+        if (data.customLocations) {
+            data.customLocations.forEach(c => {
+                const latlng = L.latLng(c.lat, c.lng);
+                const marker = L.marker(latlng, { icon: locIcon }).addTo(map);
+                marker.bindPopup(`<b>${c.name}</b><br><button class="popup-btn navigate" onclick="routeToPoint(${c.lat},${c.lng})">Navigate</button><button class="popup-btn" onclick="removeCustomLoc(this)">Remove</button>`);
+                customLocations.push({ marker, name: c.name, latlng });
+            });
         }
 
-        startBtn.innerText = "Pause Walk";
-        startBtn.classList.add('recording');
-
-        if (!homeMarker) {
-            navigator.geolocation.getCurrentPosition(pos => {
-                const homeCoords = [pos.coords.latitude, pos.coords.longitude];
-                const icon = L.divIcon({ className: '', html: '<div style="font-size: 32px; transform: translate(-16px, -32px);">🏠</div>', iconSize: [32, 32] });
-                
-                homeMarker = L.marker(homeCoords, {icon}).addTo(map);
-                homeMarker.bindPopup("<b>Home Base</b><br><button onclick='removeHome()'>Remove Home</button>");
-                
-                // Double click to remove home
-                homeMarker.on('dblclick', () => {
-                    removeHome();
-                });
-
-                walkPath.push(homeCoords);
-                lastPos = homeCoords;
-                lastTimestamp = pos.timestamp;
-                map.setView(homeCoords, 17);
-                
-                startTime = new Date();
-                document.getElementById('startTimeTxt').innerText = startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            }, err => alert("Cannot get initial location: " + err.message), { enableHighAccuracy: true });
+        // User marker
+        if (lastPos) {
+            userMarker = L.marker(lastPos, { icon: createUserMarkerIcon(), zIndexOffset: 1000 }).addTo(map);
+            map.setView(lastPos, 16);
         }
 
-        watchId = navigator.geolocation.watchPosition(pos => {
-            const currentCoords = [pos.coords.latitude, pos.coords.longitude];
-            const currentTime = pos.timestamp;
+        // Update UI
+        if (startTime) {
+            document.getElementById('startTimeTxt').textContent = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            durationTimer = setInterval(updateDuration, 1000);
+        }
 
-            if (lastPos) {
-                let distMoved = map.distance(lastPos, currentCoords);
-                
-                if (distMoved > 3) {
-                    totalDistance += distMoved;
-                    let timeDiffHours = (currentTime - lastTimestamp) / 3600000; 
-                    currentSpeed = (distMoved / 1000) / timeDiffHours;
-                    
-                    document.getElementById('distanceCount').innerText = (totalDistance / 1000).toFixed(2);
-                    document.getElementById('speedCount').innerText = isNaN(currentSpeed) ? 0 : currentSpeed.toFixed(1);
-                    
-                    walkPath.push(currentCoords);
-                    walkPolyline.setLatLngs(walkPath);
-                    
-                    // Live User Marker with Pulse
-                    if (userMarker) map.removeLayer(userMarker);
-                    userMarker = L.marker(currentCoords, {icon: L.divIcon({ className: 'pulse-marker', html: '<div style="width:16px;height:16px;background:#4361ee;border:3px solid white;border-radius:50%;"></div>', iconSize: [16, 16] })}).addTo(map);
-                    
-                    map.panTo(currentCoords); 
-                    lastPos = currentCoords;
-                    lastTimestamp = currentTime;
+        updateDashboard();
+        showToast("Previous session restored!", "success");
+    } catch (e) {
+        console.warn('Load failed:', e);
+    }
+}
 
-                    if (friendHouseMarker) friendHouseLine.setLatLngs([currentCoords, friendHouseMarker.getLatLng()]);
-                    updateLiveETA();
-                }
-            }
-        }, err => alert("GPS Error: " + err.message), { enableHighAccuracy: true });
-    });
+// Auto-save every 15 seconds
+setInterval(() => {
+    if (walkPath.length > 0) saveToStorage();
+}, SAVE_INTERVAL);
 
-    // --- 5. ROUTE HOME LOGIC ---
-    document.getElementById('homeBtn').addEventListener('click', () => {
-        if (walkPath.length < 2) { alert("You need to walk a bit further first!"); return; }
-        
+// ===================== DAILY RESET =====================
+function scheduleDailyReset() {
+    const now = new Date();
+    const reset = new Date(now);
+    reset.setHours(23, 59, 0, 0);
+    if (now >= reset) reset.setDate(reset.getDate() + 1);
+    const ms = reset - now;
+    setTimeout(() => {
         if (watchId) {
             navigator.geolocation.clearWatch(watchId);
             watchId = null;
-            startBtn.innerText = "Resume Walk";
+            startBtn.innerHTML = '<i class="fas fa-play"></i> Start Walk';
             startBtn.classList.remove('recording');
         }
-        
-        const reversePath = [...walkPath].reverse();
-        homePolyline.setLatLngs(reversePath);
-        map.fitBounds(homePolyline.getBounds(), { padding: [50, 50] });
-        updateLiveETA();
-    });
-
-    // --- 6. GLOBAL HELPER FUNCTIONS ---
-    window.removeHome = function() {
-        if (!homeMarker) return;
-        map.removeLayer(homeMarker);
-        homeMarker = null;
-        homePolyline.setLatLngs([]);
-        walkPath = [];
-        walkPolyline.setLatLngs([]);
-        alert("Home removed. Please reset trip to start a new walk.");
-    };
-
-    window.removeFriendHouse = function() {
-        if (!friendHouseMarker) return;
-        map.removeLayer(friendHouseMarker);
-        friendHouseLine.setLatLngs([]);
-        friendHouseMarker = null;
-    };
-
-    window.locateMe = function() {
-        if (lastPos) map.panTo(lastPos);
-        else alert("Start walking to track your location.");
-    };
-
-    window.shareLocation = function() {
-        if (!lastPos) return alert("Start walking to share your location.");
-        // Simulated share link
-        const dummyUrl = `https://maps.example.com/walk?lat=${lastPos[0].toFixed(5)}&lng=${lastPos[1].toFixed(5)}`;
-        navigator.clipboard.writeText(dummyUrl).then(() => {
-            alert("Live location link copied to clipboard!");
-        }).catch(() => {
-            alert("Could not copy link. URL: " + dummyUrl);
-        });
-    };
-
-    window.resetTrip = function() {
-        if (!confirm("Reset everything for a new walk?")) return;
-
-        if (watchId) navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-        startBtn.innerText = "Start Walk";
-        startBtn.classList.remove('recording');
-        
-        walkPath = [];
-        walkPolyline.setLatLngs([]);
-        homePolyline.setLatLngs([]);
-        friendHouseLine.setLatLngs([]);
-        
-        if (homeMarker) { map.removeLayer(homeMarker); homeMarker = null; }
-        if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
-        if (friendHouseMarker) { map.removeLayer(friendHouseMarker); friendHouseMarker = null; }
-        if (walkingFriendMarker) { map.removeLayer(walkingFriendMarker); walkingFriendMarker = null; }
-
-        customLocations.forEach(m => map.removeLayer(m));
-        customLocations = [];
-
-        totalDistance = 0; stepCount = 0; currentSpeed = 0; lastPos = null; startTime = null;
-        document.getElementById('stepsCount').innerText = "0";
-        document.getElementById('distanceCount').innerText = "0.00";
-        document.getElementById('speedCount').innerText = "0.0";
-        document.getElementById('startTimeTxt').innerText = "--:--";
-        document.getElementById('etaHomeTxt').innerText = "--:--";
-    };
-
-    function updateLiveETA() {
-        if (currentSpeed > 1 && startTime) {
-            // ETA based on remaining path distance back to home
-            let timeHours = (totalDistance / 1000) / currentSpeed; // totalDistance acts as distance back home
-            let timeMinutes = Math.round(timeHours * 60);
-            let arrivalDate = new Date(Date.now() + timeMinutes * 60000);
-            let timeStr = arrivalDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            document.getElementById('etaHomeTxt').innerText = `${timeStr} (${timeMinutes}m)`;
-        } else if (currentSpeed <= 1 && startTime) {
-            document.getElementById('etaHomeTxt').innerText = "Paused";
+        clearInterval(durationTimer);
+        showToast("Daily auto-reset! Starting fresh.", "warning");
+        if ('speechSynthesis' in window) {
+            const u = new SpeechSynthesisUtterance("Daily reset. Your walk data has been cleared for a new day.");
+            speechSynthesis.speak(u);
         }
-    }
+        resetTrip();
+        scheduleDailyReset();
+    }, ms);
+}
 
-    // --- 7. STEP COUNTER LOGIC ---
-    let isStepInProgress = false;
-    const STEP_THRESHOLD = 1.2; 
-    let lastStepTime = 0;
+// ===================== INITIALIZATION =====================
+function init() {
+    loadFromStorage();
+    scheduleDailyReset();
 
-    function handleMotion(event) {
-        if (!watchId) return; // Only count steps if actively walking
-        const acc = event.accelerationIncludingGravity;
-        if (!acc || acc.x === null || acc.y === null || acc.z === null) return;
-        
-        const magnitude = Math.sqrt(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z);
-        const delta = Math.abs(magnitude - 9.8); 
-        const now = Date.now();
-        
-        if (delta > STEP_THRESHOLD && !isStepInProgress && (now - lastStepTime > 300)) {
-            stepCount++;
-            document.getElementById('stepsCount').innerText = stepCount;
-            isStepInProgress = true;
-            lastStepTime = now;
-        } else if (delta < STEP_THRESHOLD) {
-            isStepInProgress = false;
-        }
-    }
+    // Fetch weather for default location, then update when GPS is available
+    fetchWeather(40.7128, -74.0060);
+
+    // Override weather when GPS is first obtained
+    const origSetHome = setHome;
+    // Weather will be updated when position is first obtained
+    navigator.geolocation.getCurrentPosition(pos => {
+        fetchWeather(pos.coords.latitude, pos.coords.longitude);
+    }, () => {}, { enableHighAccuracy: false, timeout: 5000 });
+
+    // Map invalidateSize on resize
+    window.addEventListener('resize', () => map.invalidateSize());
+
+    // Prevent context menu on long press
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Periodic weather refresh (every 10 min)
+    setInterval(() => {
+        if (lastPos) fetchWeather(lastPos[0], lastPos[1]);
+        else if (homeMarker) fetchWeather(homeMarker.getLatLng().lat, homeMarker.getLatLng().lng);
+    }, 600000);
+}
+
+init();
 </script>
 </body>
+</html>
+    
+  </body>
+  
 </html>
