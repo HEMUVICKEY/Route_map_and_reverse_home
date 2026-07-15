@@ -129,8 +129,13 @@
         .stat-box h3 { font-size: 1.35em; font-weight: 800; color: var(--text); line-height: 1.1; }
         .stat-box p { font-size: 0.58em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 2px; }
 
-        /* Map */
-        #map { flex-grow: 1; width: 100%; z-index: 1; position: relative; background: var(--bg); }
+        /* Map — Leaflet gets its own isolated container; all custom UI lives in
+           a separate #mapOverlay layer stacked on top, so Leaflet's internal
+           panes/controls can never visually or interactively cover our UI. */
+        #mapContainer { flex-grow: 1; width: 100%; position: relative; z-index: 1; background: var(--bg); overflow: hidden; }
+        #map { position: absolute; inset: 0; z-index: 1; }
+        #mapOverlay { position: absolute; inset: 0; z-index: 1000; pointer-events: none; }
+        #mapOverlay > * { pointer-events: auto; }
 
         /* Map Controls */
         .map-controls-wrapper {
@@ -476,7 +481,10 @@
 </div>
 
 <!-- Map -->
-<div id="map">
+<div id="mapContainer">
+    <div id="map"></div>
+
+    <div id="mapOverlay">
     <!-- Search Bar -->
     <div id="searchBar">
         <i class="fas fa-search"></i>
@@ -579,6 +587,7 @@
             <div class="side-tab" onclick="switchTab('stats', event)">Stats</div>
         </div>
         <div class="side-panel-content" id="sidePanelContent"></div>
+    </div>
     </div>
 </div>
 
@@ -695,6 +704,21 @@ let allTimeStats = { totalDistance: 0, totalSteps: 0, totalCalories: 0, totalWal
 const KM_TO_MI = 0.621371;
 
 // ===================== MAP INIT (Fixed Rotation & Auto-Center) =====================
+if (typeof L === 'undefined') {
+    // Leaflet failed to load (e.g. CDN blocked in a sandboxed preview). Show a
+    // clear on-page notice instead of letting the whole app silently break,
+    // which otherwise makes buttons like Search look like they "aren't there".
+    document.getElementById('mapContainer').innerHTML = `
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--bg);z-index:2000;">
+            <div style="max-width:320px;background:var(--card);border-radius:16px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.15);">
+                <div style="font-size:2em;margin-bottom:8px;">🗺️⚠️</div>
+                <div style="font-weight:800;margin-bottom:6px;">Map library failed to load</div>
+                <div style="font-size:0.85em;color:var(--muted);line-height:1.4;">This preview couldn't reach the map/icon CDN, so the map, search, and routing features can't run here. Open this file in a regular browser tab with internet access to use them.</div>
+            </div>
+        </div>`;
+    throw new Error('Leaflet (L) failed to load — see on-page notice');
+}
+
 const map = L.map('map', {
     zoomControl: false,
     doubleClickZoom: true,
@@ -1701,7 +1725,11 @@ async function searchPlaces(query) {
 
         renderSearchResults(results);
     } catch (e) {
-        // Network unavailable — fail quietly, results area just stays empty
+        // Network unavailable — still show the dropdown with a clear message
+        // instead of silently doing nothing (which looks like the search box is broken).
+        const container = document.getElementById('searchResults');
+        container.innerHTML = '<div class="search-result-item"><i class="fas fa-wifi" style="opacity:0.6"></i> Search unavailable — no internet access to the map search service.<small>Open this file in a regular browser tab to search.</small></div>';
+        container.style.display = 'block';
     }
 }
 
