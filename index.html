@@ -14,11 +14,15 @@
             --light: #f8f9fa; --success: #06d6a0; --warning: #f4a261; --purple: #9b5de5;
             --text: #1d2b36; --muted: #8899aa; --border: #e8ecf0; --bg: #eef2f5;
             --shadow: rgba(0,0,0,0.08);
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.5);
         }
         .dark-mode {
             --primary: #6b83f5; --dark: #0f1923; --card: #1b2838; --light: #243447;
             --text: #e0e8f0; --muted: #6b8299; --border: #2a3a4a; --bg: #0a1520;
             --shadow: rgba(0,0,0,0.3);
+            --glass-bg: rgba(27, 40, 56, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         body {
@@ -31,9 +35,11 @@
             z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none;
         }
         .toast {
-            background: var(--dark); color: white; padding: 10px 20px; border-radius: 12px;
+            background: var(--dark); color: white; padding: 12px 24px; border-radius: 12px;
             font-size: 0.85em; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
             animation: toastIn 0.4s ease, toastOut 0.4s ease 2.6s forwards; white-space: nowrap;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            background-color: rgba(29, 43, 54, 0.9);
         }
         .toast.success { border-left: 4px solid var(--success); }
         .toast.warning { border-left: 4px solid var(--warning); }
@@ -43,62 +49,39 @@
         @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
 
         #header {
-            background: var(--dark); color: white; padding: 8px 14px; font-size: 0.78em;
+            background: var(--dark); color: white; padding: 10px 14px; font-size: 0.78em;
             font-weight: 600; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+            z-index: 1001; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .header-left, .header-right { display: flex; align-items: center; gap: 8px; }
         #weatherWidget, #gpsWidget, #unitToggle {
-            background: rgba(255,255,255,0.12); padding: 4px 10px; border-radius: 8px;
+            background: rgba(255,255,255,0.12); padding: 6px 12px; border-radius: 8px;
             cursor: pointer; font-size: 0.9em; transition: background 0.2s; font-weight: 700;
         }
         #weatherWidget:hover, #gpsWidget:hover, #unitToggle:hover { background: rgba(255,255,255,0.2); }
         .header-btn {
-            background: rgba(255,255,255,0.1); border: none; color: white; width: 30px; height: 30px;
+            background: rgba(255,255,255,0.1); border: none; color: white; width: 32px; height: 32px;
             border-radius: 8px; cursor: pointer; font-size: 0.85em; display: flex;
             align-items: center; justify-content: center; transition: background 0.2s;
         }
         .header-btn:hover { background: rgba(255,255,255,0.2); }
-        .save-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); display: inline-block; }
+        .save-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; box-shadow: 0 0 8px var(--success); }
         .save-dot.saving { animation: blink 0.6s ease infinite; }
         @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
 
-        #searchBar {
-            position: absolute; top: 12px; left: 12px; z-index: 1000;
-            background: var(--card); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow);
-            display: flex; align-items: center; padding: 4px 10px; gap: 8px; width: 240px;
-        }
-        #searchBar i { color: var(--muted); }
-        #searchBar input {
-            border: none; background: transparent; outline: none; font-family: 'Inter', sans-serif;
-            font-size: 0.85em; flex: 1; color: var(--text); padding: 6px 0;
-        }
-        #searchResults {
-            position: absolute; top: 48px; left: 12px; z-index: 1000; width: 240px;
-            background: var(--card); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow);
-            max-height: 300px; overflow-y: auto; display: none;
-        }
-        .search-result-item {
-            padding: 10px 14px; cursor: pointer; font-size: 0.8em; font-weight: 600;
-            border-bottom: 1px solid var(--border); color: var(--text);
-        }
-        .search-result-item:hover { background: var(--light); }
-        .search-result-item:last-child { border-bottom: none; border-radius: 0 0 12px 12px; }
-        .search-result-item small { display:block; font-weight:500; color:var(--muted); margin-top:2px; }
-        .search-result-item .cat-tag { display:inline-block; background:var(--light); padding:1px 6px; border-radius:6px; font-size:0.85em; margin-top:3px; color:var(--primary); }
-
         #dashboard {
-            display: flex; background: var(--card); padding: 10px 8px;
-            box-shadow: 0 2px 12px var(--shadow); z-index: 1000;
+            display: flex; background: var(--card); padding: 12px 8px;
+            box-shadow: 0 4px 15px var(--shadow); z-index: 1000;
             border-bottom: 1px solid var(--border); flex-shrink: 0;
             overflow-x: auto; -webkit-overflow-scrolling: touch;
         }
         #dashboard::-webkit-scrollbar { display: none; }
-        .stat-box { text-align: center; min-width: 80px; flex-shrink: 0; padding: 4px 10px; position: relative; }
+        .stat-box { text-align: center; min-width: 85px; flex-shrink: 0; padding: 4px 10px; position: relative; }
         .stat-box:not(:last-child)::after {
             content: ''; position: absolute; right: 0; top: 15%; height: 70%; width: 1px; background: var(--border);
         }
-        .stat-box h3 { font-size: 1.35em; font-weight: 800; color: var(--text); line-height: 1.1; }
-        .stat-box p { font-size: 0.58em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 2px; }
+        .stat-box h3 { font-size: 1.5em; font-weight: 800; color: var(--text); line-height: 1.1; }
+        .stat-box p { font-size: 0.6em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-top: 4px; }
 
         #map { flex-grow: 1; width: 100%; z-index: 1; position: relative; background: var(--bg); }
 
@@ -107,20 +90,23 @@
             display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
         }
         .map-card {
-            background: var(--card); padding: 6px 10px; border-radius: 10px; box-shadow: 0 4px 15px var(--shadow);
+            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            padding: 8px 12px; border-radius: 12px; box-shadow: 0 4px 15px var(--shadow);
+            border: 1px solid var(--glass-border);
         }
         .map-card select {
             border: none; background: transparent; font-family: 'Inter', sans-serif;
-            font-weight: 600; font-size: 0.8em; cursor: pointer; outline: none; color: var(--text);
+            font-weight: 700; font-size: 0.85em; cursor: pointer; outline: none; color: var(--text);
         }
         .map-btn {
-            width: 42px; height: 42px; background: var(--card); border: none; border-radius: 50%;
-            box-shadow: 0 3px 12px var(--shadow); font-size: 1.05em; cursor: pointer;
+            width: 42px; height: 42px; background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border); border-radius: 50%;
+            box-shadow: 0 4px 15px var(--shadow); font-size: 1.1em; cursor: pointer;
             color: var(--text); display: flex; align-items: center; justify-content: center;
             transition: transform 0.15s, background 0.2s, color 0.2s; position: relative;
         }
         .map-btn:active { transform: scale(0.92); }
-        .map-btn.active { background: var(--warning); color: white; }
+        .map-btn.active { background: var(--warning); color: white; border-color: var(--warning); }
         .map-btn i { pointer-events: none; }
 
         .zoom-controls, .compass-widget {
@@ -129,50 +115,54 @@
         .zoom-controls { bottom: 20px; left: 12px; }
         .compass-widget { bottom: 20px; right: 12px; }
         .zoom-btn, .compass-btn {
-            width: 38px; height: 38px; background: var(--card); border: 1px solid var(--border);
-            font-size: 1.2em; cursor: pointer; color: var(--text); display: flex;
+            width: 40px; height: 40px; background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border); font-size: 1.2em; cursor: pointer; color: var(--text); display: flex;
             align-items: center; justify-content: center; transition: background 0.2s;
         }
-        .zoom-btn:first-child { border-radius: 10px 10px 0 0; }
-        .zoom-btn:last-child { border-radius: 0 0 10px 10px; }
-        .compass-btn { border-radius: 50%; width: 50px; height: 50px; font-size: 1.4em; flex-direction: column; }
+        .zoom-btn:first-child { border-radius: 12px 12px 0 0; }
+        .zoom-btn:last-child { border-radius: 0 0 12px 12px; border-top: none; }
+        .compass-btn { border-radius: 50%; width: 52px; height: 52px; font-size: 1.4em; flex-direction: column; }
         .compass-needle { display: inline-block; transition: transform 0.3s; }
         .zoom-btn:hover, .compass-btn:hover { background: var(--light); }
         .compass-label { font-size: 0.5em; font-weight: 700; color: var(--muted); }
-        .compass-btn.active { background: var(--primary); color: white; }
+        .compass-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
         #rotateSliderWrap {
-            position: absolute; bottom: 75px; right: 12px; z-index: 1000;
-            background: var(--card); padding: 8px 12px; border-radius: 10px;
-            box-shadow: 0 4px 15px var(--shadow); display: none; flex-direction: column; gap: 6px; width: 160px;
+            position: absolute; bottom: 85px; right: 12px; z-index: 1000;
+            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 10px 14px; border-radius: 12px;
+            box-shadow: 0 4px 15px var(--shadow); display: none; flex-direction: column; gap: 8px; width: 180px;
         }
         #rotateSliderWrap.show { display: flex; }
-        #rotateSliderWrap label { font-size: 0.7em; font-weight: 700; color: var(--muted); display: flex; justify-content: space-between; }
+        #rotateSliderWrap label { font-size: 0.75em; font-weight: 700; color: var(--text); display: flex; justify-content: space-between; }
         #rotateSlider { width: 100%; cursor: pointer; }
         .rotate-toggle-row { display: flex; align-items: center; gap: 6px; font-size: 0.7em; font-weight: 700; color: var(--text); }
 
         #routePanel {
             position: absolute; bottom: 0; left: 0; right: 0; z-index: 1001;
-            background: var(--card); border-radius: 20px 20px 0 0;
-            box-shadow: 0 -4px 25px rgba(0,0,0,0.15); transform: translateY(100%);
-            transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); max-height: 55vh;
+            background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -8px 30px rgba(0,0,0,0.15); transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); max-height: 60vh;
             display: flex; flex-direction: column;
         }
         #routePanel.open { transform: translateY(0); }
-        .route-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 10px auto 6px; flex-shrink: 0; cursor: pointer; }
-        .route-modes { display: flex; gap: 6px; padding: 6px 16px; overflow-x: auto; flex-shrink: 0; }
+        .route-handle { width: 40px; height: 5px; background: var(--muted); border-radius: 3px; margin: 10px auto 6px; flex-shrink: 0; cursor: pointer; opacity: 0.5; }
+        .route-modes { display: flex; gap: 6px; padding: 8px 16px; overflow-x: auto; flex-shrink: 0; }
         .route-modes::-webkit-scrollbar { display: none; }
         .mode-btn {
-            display: flex; flex-direction: column; align-items: center; gap: 2px;
-            padding: 8px 12px; border-radius: 12px; border: 2px solid var(--border);
-            background: transparent; cursor: pointer; min-width: 60px; transition: all 0.2s;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            padding: 8px 14px; border-radius: 12px; border: 2px solid var(--border);
+            background: transparent; cursor: pointer; min-width: 64px; transition: all 0.2s;
             font-family: 'Inter', sans-serif; color: var(--text);
         }
         .mode-btn i { font-size: 1.2em; }
-        .mode-btn span { font-size: 0.6em; font-weight: 700; }
+        .mode-btn span { font-size: 0.65em; font-weight: 700; }
         .mode-btn.active { border-color: var(--primary); background: rgba(67,97,238,0.1); color: var(--primary); }
         .route-summary {
-            padding: 10px 16px; display: flex; gap: 20px; align-items: center;
+            padding: 12px 16px; display: flex; gap: 20px; align-items: center;
             border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); flex-shrink: 0;
         }
         .route-summary .big { font-size: 1.4em; font-weight: 800; }
@@ -185,164 +175,168 @@
         }
         .directions-list { flex: 1; overflow-y: auto; padding: 8px 16px 16px; }
         .dir-step {
-            display: flex; gap: 12px; padding: 10px 0; align-items: flex-start;
+            display: flex; gap: 12px; padding: 12px 0; align-items: flex-start;
             border-bottom: 1px solid var(--border);
         }
         .dir-step:last-child { border-bottom: none; }
-        .dir-step.current { background: rgba(67,97,238,0.08); border-radius: 8px; padding: 10px; margin: 4px 0; }
+        .dir-step.current { background: rgba(67,97,238,0.08); border-radius: 8px; padding: 12px; margin: 4px 0; }
         .dir-icon {
-            width: 32px; height: 32px; border-radius: 8px; background: var(--light);
-            display: flex; align-items: center; justify-content: center; font-size: 0.85em;
+            width: 34px; height: 34px; border-radius: 10px; background: var(--light);
+            display: flex; align-items: center; justify-content: center; font-size: 0.9em;
             flex-shrink: 0; color: var(--primary);
         }
-        .dir-text { font-size: 0.82em; font-weight: 600; line-height: 1.3; }
-        .dir-dist { font-size: 0.7em; color: var(--muted); font-weight: 600; margin-top: 2px; }
+        .dir-text { font-size: 0.85em; font-weight: 600; line-height: 1.3; }
+        .dir-dist { font-size: 0.7em; color: var(--muted); font-weight: 600; margin-top: 4px; }
 
-        .alt-routes-row { display: flex; gap: 6px; padding: 0 16px 6px; overflow-x: auto; flex-shrink: 0; }
+        .alt-routes-row { display: flex; gap: 6px; padding: 0 16px 8px; overflow-x: auto; flex-shrink: 0; }
         .alt-route-btn {
-            padding: 6px 10px; border-radius: 8px; border: 2px solid var(--border); background: var(--light);
+            padding: 6px 12px; border-radius: 8px; border: 2px solid var(--border); background: var(--light);
             cursor: pointer; font-size: 0.7em; font-weight: 700; color: var(--text); white-space: nowrap;
         }
         .alt-route-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(67,97,238,0.1); }
 
         #reopenRoutePill {
             position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; background: var(--dark); color: white; padding: 8px 16px;
-            border-radius: 20px; font-size: 0.78em; font-weight: 700; cursor: pointer;
+            z-index: 1000; background: var(--dark); color: white; padding: 10px 20px;
+            border-radius: 24px; font-size: 0.8em; font-weight: 700; cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.25); display: none; align-items: center; gap: 8px;
         }
 
         .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9998;
             display: none; align-items: center; justify-content: center; padding: 20px;
         }
         .modal-overlay.open { display: flex; }
         .modal-box {
-            background: var(--card); border-radius: 16px; padding: 24px;
-            width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            background: var(--card); border-radius: 20px; padding: 24px;
+            width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             animation: modalIn 0.3s ease; max-height: 85vh; overflow-y: auto;
         }
         @keyframes modalIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .modal-box h3 { font-size: 1.1em; font-weight: 800; margin-bottom: 14px; }
+        .modal-box h3 { font-size: 1.2em; font-weight: 800; margin-bottom: 16px; }
         .modal-box input, .modal-box select, .modal-box textarea {
-            width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px;
+            width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 12px;
             font-family: 'Inter', sans-serif; font-size: 0.9em; outline: none;
-            background: var(--light); color: var(--text); margin-bottom: 10px; resize: vertical;
+            background: var(--light); color: var(--text); margin-bottom: 12px; resize: vertical;
         }
-        .modal-box textarea { min-height: 60px; font-size: 0.85em; }
+        .modal-box textarea { min-height: 70px; font-size: 0.85em; }
         .modal-box input:focus, .modal-box select:focus, .modal-box textarea:focus { border-color: var(--primary); }
-        .modal-label { font-size: 0.7em; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; display: block; }
-        .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
-        .modal-actions button { flex: 1; padding: 10px; font-size: 0.9em; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; font-family: 'Inter', sans-serif; }
+        .modal-label { font-size: 0.7em; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; display: block; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .modal-actions button { flex: 1; padding: 12px; font-size: 0.9em; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-family: 'Inter', sans-serif; transition: transform 0.1s; }
+        .modal-actions button:active { transform: scale(0.96); }
         .btn-cancel { background: var(--light); color: var(--text); }
         .btn-confirm { background: var(--primary); color: white; }
         .btn-danger { background: var(--danger); color: white; }
-        .emoji-picker, .color-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .emoji-picker, .color-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
         .emoji-opt, .color-opt {
-            width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+            width: 38px; height: 38px; border-radius: 10px; cursor: pointer;
             display: flex; align-items: center; justify-content: center; font-size: 1.2em;
             border: 2px solid var(--border); transition: transform 0.15s;
         }
         .emoji-opt.selected, .color-opt.selected { border-color: var(--primary); transform: scale(1.1); }
-        .color-opt { width: 30px; height: 30px; }
+        .color-opt { width: 32px; height: 32px; }
 
-        .place-type-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 6px; margin-bottom: 12px; }
+        .place-type-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 12px; }
         .place-type-opt {
-            display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+            display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px;
             border: 2px solid var(--border); cursor: pointer; font-size: 0.8em; font-weight: 700;
             color: var(--text); background: var(--light);
         }
         .place-type-opt.selected { border-color: var(--primary); color: var(--primary); background: rgba(67,97,238,0.1); }
         .place-type-opt .emoji { font-size: 1.3em; }
 
-        .nearby-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:8px; margin-bottom: 10px; }
+        .nearby-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-bottom: 12px; }
         .nearby-opt {
-            display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px;
-            border-radius:10px; border:2px solid var(--border); cursor:pointer; font-size:0.68em;
-            font-weight:700; color:var(--text); background:var(--light);
+            display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 4px;
+            border-radius:12px; border:2px solid var(--border); cursor:pointer; font-size:0.7em;
+            font-weight:700; color:var(--text); background:var(--light); transition: all 0.2s;
         }
-        .nearby-opt span.emoji { font-size:1.4em; }
+        .nearby-opt span.emoji { font-size:1.5em; }
         .nearby-opt:hover { border-color: var(--primary); }
-        .radius-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+        .radius-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
         .radius-btn {
-            padding: 6px 10px; border-radius: 8px; border: 2px solid var(--border); background: var(--light);
+            padding: 8px 14px; border-radius: 10px; border: 2px solid var(--border); background: var(--light);
             cursor: pointer; font-size: 0.75em; font-weight: 700; color: var(--text);
         }
         .radius-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(67,97,238,0.1); }
 
         #measureReadout {
-            position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-            z-index: 1001; background: var(--dark); color: white; padding: 8px 16px;
-            border-radius: 20px; font-size: 0.78em; font-weight: 700; display: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.25); align-items: center; gap: 10px; flex-direction: column;
+            position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+            z-index: 1001; background: var(--dark); color: white; padding: 10px 20px;
+            border-radius: 24px; font-size: 0.8em; font-weight: 700; display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25); align-items: center; gap: 12px; flex-direction: column;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            background-color: rgba(29, 43, 54, 0.9);
         }
-        #measureReadout .measure-stats { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+        #measureReadout .measure-stats { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
         #measureReadout .measure-stats div { text-align: center; }
         #measureReadout .measure-stats .label { font-size: 0.75em; opacity: 0.7; display: block; }
-        #measureReadout .measure-stats .val { font-size: 1.05em; }
+        #measureReadout .measure-stats .val { font-size: 1.1em; }
         #measureReadout button {
-            background: rgba(255,255,255,0.15); border: none; color: white; padding: 4px 10px;
+            background: rgba(255,255,255,0.15); border: none; color: white; padding: 6px 12px;
             border-radius: 8px; font-size: 0.85em; font-weight: 700; cursor: pointer;
         }
 
-        .stats-card { background: var(--light); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+        .stats-card { background: var(--light); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
         .stats-card .label { font-size: 0.65em; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
-        .stats-card .value { font-size: 1.3em; font-weight: 800; color: var(--text); margin-top: 2px; }
-        .stats-row { display: flex; gap: 8px; }
+        .stats-card .value { font-size: 1.4em; font-weight: 800; color: var(--text); margin-top: 4px; }
+        .stats-row { display: flex; gap: 10px; }
         .stats-row .stats-card { flex: 1; }
 
-        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
-        .summary-item { background: var(--light); border-radius: 10px; padding: 10px; text-align: center; }
-        .summary-item .big { font-size: 1.25em; font-weight: 800; }
-        .summary-item .sub { font-size: 0.62em; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-top: 2px; }
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+        .summary-item { background: var(--light); border-radius: 14px; padding: 14px; text-align: center; }
+        .summary-item .big { font-size: 1.3em; font-weight: 800; }
+        .summary-item .sub { font-size: 0.65em; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-top: 4px; }
 
         #sidePanel {
-            position: absolute; top: 0; right: -300px; width: 300px; height: 100%;
+            position: absolute; top: 0; right: -320px; width: 320px; height: 100%;
             background: var(--card); z-index: 1002; transition: right 0.3s;
             box-shadow: -4px 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column;
         }
         #sidePanel.open { right: 0; }
         .side-panel-header {
-            padding: 14px 16px; background: var(--dark); color: white;
-            display: flex; justify-content: space-between; align-items: center; font-weight: 700;
+            padding: 16px 20px; background: var(--dark); color: white;
+            display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 1.1em;
         }
         .side-panel-tabs { display: flex; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
         .side-tab {
-            flex: 1; padding: 8px 4px; text-align: center; cursor: pointer; font-size: 0.7em;
+            flex: 1; padding: 12px 4px; text-align: center; cursor: pointer; font-size: 0.75em;
             font-weight: 700; color: var(--muted); border-bottom: 2px solid transparent; min-width: 60px;
         }
         .side-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-        .side-panel-content { flex: 1; overflow-y: auto; padding: 8px; }
+        .side-panel-content { flex: 1; overflow-y: auto; padding: 10px; }
         .saved-item {
-            padding: 10px 12px; border-radius: 10px; cursor: pointer; margin-bottom: 6px;
-            background: var(--light); display: flex; align-items: center; gap: 10px; font-size: 0.82em; font-weight: 600;
+            padding: 12px 14px; border-radius: 12px; cursor: pointer; margin-bottom: 8px;
+            background: var(--light); display: flex; align-items: center; gap: 12px; font-size: 0.85em; font-weight: 600;
+            transition: background 0.2s;
         }
         .saved-item:hover { background: rgba(67,97,238,0.1); }
-        .saved-item .icon { font-size: 1.2em; }
+        .saved-item .icon { font-size: 1.3em; }
         .saved-item .info { flex: 1; min-width: 0; }
-        .saved-item .info small { display: block; color: var(--muted); font-weight: 500; }
-        .saved-item .del { color: var(--danger); cursor: pointer; padding: 4px; }
-        .saved-item .edit { color: var(--primary); cursor: pointer; padding: 4px; }
+        .saved-item .info small { display: block; color: var(--muted); font-weight: 500; margin-top: 2px; }
+        .saved-item .del { color: var(--danger); cursor: pointer; padding: 6px; }
+        .saved-item .edit { color: var(--primary); cursor: pointer; padding: 6px; }
         .saved-item.home-locked .del { display: none; }
-        .saved-item.home-locked::after { content: '🔒'; font-size: 0.8em; opacity: 0.6; }
-        .cat-filter-row { display: flex; gap: 4px; padding: 6px 8px; overflow-x: auto; flex-wrap: nowrap; }
-        .cat-filter-btn { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--light); font-size: 0.65em; font-weight: 700; cursor: pointer; white-space: nowrap; color: var(--text); }
+        .saved-item.home-locked::after { content: '🔒'; font-size: 0.9em; opacity: 0.6; }
+        .cat-filter-row { display: flex; gap: 6px; padding: 8px 10px; overflow-x: auto; flex-wrap: nowrap; }
+        .cat-filter-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--light); font-size: 0.7em; font-weight: 700; cursor: pointer; white-space: nowrap; color: var(--text); }
         .cat-filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
         .controls {
-            background: var(--card); padding: 10px 14px;
-            box-shadow: 0 -2px 12px var(--shadow); display: flex; gap: 8px;
+            background: var(--card); padding: 12px 14px;
+            box-shadow: 0 -4px 15px var(--shadow); display: flex; gap: 10px;
             z-index: 1000; border-top: 1px solid var(--border); flex-shrink: 0;
         }
         .controls button {
-            padding: 12px 14px; font-size: 0.9em; cursor: pointer; border: none;
-            border-radius: 12px; font-weight: 700; color: white;
-            transition: transform 0.1s, background 0.3s; box-shadow: 0 3px 10px var(--shadow);
-            font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 14px 14px; font-size: 0.9em; cursor: pointer; border: none;
+            border-radius: 14px; font-weight: 800; color: white;
+            transition: transform 0.1s, background 0.3s; box-shadow: 0 4px 10px var(--shadow);
+            font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px;
         }
         .controls button:active { transform: scale(0.96); }
-        #startBtn { background: var(--primary); flex: 2; }
-        #startBtn.recording { background: var(--danger); animation: pulse 2s infinite; }
+        #startBtn { background: linear-gradient(135deg, var(--primary), #3b54c4); flex: 2; }
+        #startBtn.recording { background: linear-gradient(135deg, var(--danger), #d63a5e); animation: pulse 2s infinite; }
         #homeBtn { background: var(--dark); flex: 1.5; }
         #sosBtn { background: var(--danger); flex: 0.6; font-size: 0.75em; }
         #shareBtn { background: var(--light); color: var(--text); flex: 0.6; }
@@ -363,10 +357,10 @@
             70% { box-shadow: 0 0 0 14px rgba(67,97,238,0); }
             100% { box-shadow: 0 0 0 0 rgba(67,97,238,0); }
         }
-        .leaflet-popup-content-wrapper { border-radius: 12px; font-family: 'Inter', sans-serif; }
-        .leaflet-popup-content { margin: 10px 14px; font-size: 0.85em; min-width: 180px; }
+        .leaflet-popup-content-wrapper { border-radius: 14px; font-family: 'Inter', sans-serif; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+        .leaflet-popup-content { margin: 12px 16px; font-size: 0.85em; min-width: 200px; }
         .popup-btn {
-            display: inline-block; padding: 5px 10px; margin-top: 6px; border-radius: 8px;
+            display: inline-block; padding: 6px 12px; margin-top: 8px; border-radius: 8px;
             background: var(--danger); color: white; border: none; cursor: pointer;
             font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.8em;
         }
@@ -375,8 +369,8 @@
         .popup-btn.shortcut { background: var(--success); margin-right: 4px; }
         .popup-btn.edit { background: var(--purple); margin-right: 4px; }
         .popup-btn.delete { background: var(--danger); }
-        .popup-desc { font-size: 0.9em; color: var(--muted); margin: 4px 0; font-weight: 500; }
-        .popup-meta { font-size: 0.8em; color: var(--muted); margin-top: 4px; }
+        .popup-desc { font-size: 0.9em; color: var(--muted); margin: 6px 0; font-weight: 500; }
+        .popup-meta { font-size: 0.8em; color: var(--muted); margin-top: 6px; }
 
         .near-marker-near { animation: blinkNear 0.8s ease-in-out infinite; }
         .near-marker-far { animation: blinkFar 1.5s ease-in-out infinite; }
@@ -390,22 +384,26 @@
         }
 
         #speedIndicator {
-            position: absolute; bottom: 70px; left: 12px; z-index: 999;
-            background: var(--dark); color: white; padding: 8px 14px; border-radius: 12px;
-            font-weight: 800; font-size: 1.1em; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: absolute; bottom: 80px; left: 12px; z-index: 999;
+            background: var(--dark); color: white; padding: 10px 16px; border-radius: 12px;
+            font-weight: 800; font-size: 1.2em; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            background-color: rgba(29, 43, 54, 0.85);
         }
         #speedIndicator small { font-size: 0.55em; font-weight: 600; opacity: 0.7; display: block; }
 
         .gps-acc-good { color: var(--success); }
         .gps-acc-medium { color: var(--warning); }
         .gps-acc-poor { color: var(--danger); }
+        
+        .leaflet-control-attribution { background: rgba(255,255,255,0.6) !important; backdrop-filter: blur(4px); font-size: 0.6em !important; }
+        .dark-mode .leaflet-control-attribution { background: rgba(15,25,35,0.6) !important; color: #aaa !important; }
     </style>
 </head>
 <body>
 
 <div id="toastContainer"></div>
 
-<!-- Generic input modal (for adding places, renaming, etc.) -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
         <h3 id="modalTitle">Enter Name</h3>
@@ -417,11 +415,10 @@
     </div>
 </div>
 
-<!-- Confirm deletion modal -->
 <div class="modal-overlay" id="confirmModal">
     <div class="modal-box">
         <h3 id="confirmTitle">Confirm Deletion</h3>
-        <p id="confirmMsg" style="font-size:0.85em;color:var(--muted);margin-bottom:14px;">Are you sure you want to delete this location?</p>
+        <p id="confirmMsg" style="font-size:0.85em;color:var(--muted);margin-bottom:16px;line-height:1.4;">Are you sure you want to delete this location?</p>
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeConfirmModal(false)">Cancel</button>
             <button class="btn-danger" id="confirmYesBtn">Delete</button>
@@ -429,7 +426,6 @@
     </div>
 </div>
 
-<!-- Add Place modal (manual) -->
 <div class="modal-overlay" id="addPlaceModal">
     <div class="modal-box">
         <h3>➕ Add Place Manually</h3>
@@ -440,11 +436,11 @@
         <label class="modal-label">Description (optional)</label>
         <textarea id="placeDescInput" placeholder="Add notes..."></textarea>
         <label class="modal-label">Coordinates</label>
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:8px;">
             <input type="number" id="placeLatInput" placeholder="Latitude" step="0.0001" />
             <input type="number" id="placeLngInput" placeholder="Longitude" step="0.0001" />
         </div>
-        <button class="btn-cancel" style="width:100%;margin-bottom:10px;font-size:0.8em;" onclick="useMyLocationForPlace()">📍 Use My Current Location</button>
+        <button class="btn-cancel" style="width:100%;margin-bottom:12px;font-size:0.8em;" onclick="useMyLocationForPlace()">📍 Use My Current Location</button>
         <label class="modal-label">Icon</label>
         <div class="emoji-picker" id="placeEmojiPicker"></div>
         <label class="modal-label">Color</label>
@@ -456,11 +452,10 @@
     </div>
 </div>
 
-<!-- Nearby Places modal -->
 <div class="modal-overlay" id="nearbyModal">
     <div class="modal-box">
         <h3>📍 Nearby Places</h3>
-        <p style="font-size:0.75em;color:var(--muted);margin-bottom:10px;">Select a category and search radius. Near places blink green, far blink slow.</p>
+        <p style="font-size:0.75em;color:var(--muted);margin-bottom:12px;line-height:1.4;">Select a category and search radius. Near places blink green, far blink slow.</p>
         <label class="modal-label">Search Radius</label>
         <div class="radius-row" id="radiusRow">
             <button class="radius-btn" data-r="1000">1 km</button>
@@ -477,7 +472,6 @@
     </div>
 </div>
 
-<!-- Walk summary modal -->
 <div class="modal-overlay" id="summaryModal">
     <div class="modal-box">
         <h3>🎉 Walk Summary</h3>
@@ -489,18 +483,17 @@
     </div>
 </div>
 
-<!-- Settings modal -->
 <div class="modal-overlay" id="settingsModal">
     <div class="modal-box">
         <h3>⚙️ Settings & Data</h3>
-        <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;flex-direction:column;gap:10px;">
             <button class="btn-confirm" onclick="exportBackup()"><i class="fas fa-file-export"></i> Export Backup (JSON)</button>
             <button class="btn-confirm" onclick="document.getElementById('importFileInput').click()"><i class="fas fa-file-import"></i> Import Backup</button>
             <input type="file" id="importFileInput" accept="application/json" style="display:none" onchange="importBackup(event)">
             <button class="btn-confirm" onclick="saveToLocalDevice()"><i class="fas fa-download"></i> Save Snapshot</button>
             <button class="btn-danger" onclick="confirmClearAll()"><i class="fas fa-trash"></i> Clear All Data</button>
         </div>
-        <div class="modal-actions" style="margin-top:14px;">
+        <div class="modal-actions" style="margin-top:16px;">
             <button class="btn-cancel" onclick="document.getElementById('settingsModal').classList.remove('open')">Close</button>
         </div>
     </div>
@@ -601,7 +594,7 @@
             <input type="checkbox" id="compassFollowChk" onchange="toggleCompassFollow(this.checked)" />
             <label for="compassFollowChk">Follow Compass</label>
         </div>
-        <button class="btn-confirm" style="padding:6px;font-size:0.75em;" onclick="resetMapRotation()">Reset Rotation</button>
+        <button class="btn-confirm" style="padding:8px;font-size:0.75em;" onclick="resetMapRotation()">Reset Rotation</button>
     </div>
 
     <div id="speedIndicator">
@@ -620,7 +613,7 @@
             <div><span class="label">Straight</span><span class="val" id="measureStraight">0 m</span></div>
             <div><span class="label">Walk Time</span><span class="val" id="measureTime">0 min</span></div>
         </div>
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:8px;">
             <button onclick="undoMeasurePoint()"><i class="fas fa-rotate-left"></i> Undo</button>
             <button onclick="clearMeasurement()"><i class="fas fa-xmark"></i> Clear</button>
         </div>
@@ -751,11 +744,12 @@ let categoryFilter = 'all';
 let undoStack = [], redoStack = [];
 let manualPlaceType = 'location';
 let confirmCallback = null;
+let searchDebounce = null;
 
 // ===================== MAP INIT =====================
 const map = L.map('map', {
     zoomControl: false, doubleClickZoom: true, touchZoom: true,
-    scrollWheelZoom: true, attributionControl: true, zoomAnimation: true
+    scrollWheelZoom: true, attributionControl: true, zoomAnimation: true, fadeAnimation: true
 }).setView([40.7128, -74.0060], 14);
 
 let currentLayer;
@@ -939,7 +933,6 @@ function resetMapRotation() {
     showToast('Map rotation reset to North', 'info');
 }
 function resetNorth() {
-    // If compass follow is on, toggle it off; otherwise reset rotation
     if (compassFollow) {
         toggleCompassFollow(false);
         document.getElementById('compassFollowChk').checked = false;
@@ -950,7 +943,6 @@ function toggleCompassFollow(enabled) {
     compassFollow = enabled;
     document.getElementById('compassBtn').classList.toggle('active', compassFollow);
     if (compassFollow) {
-        // Request iOS permission
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
             DeviceOrientationEvent.requestPermission().then(state => {
                 if (state === 'granted') {
@@ -984,7 +976,6 @@ function handleCompassOrientation(e) {
     if (!compassFollow) return;
     let heading = e.webkitCompassHeading || e.alpha;
     if (heading == null) return;
-    // webkitCompassHeading is clockwise from north; alpha is counterclockwise
     if (e.webkitCompassHeading === undefined) heading = 360 - heading;
     compassHeading = Math.round(heading);
     document.getElementById('rotateSlider').value = compassHeading;
@@ -994,7 +985,7 @@ function handleCompassOrientation(e) {
 // ===================== UNITS =====================
 function formatDistanceMeters(meters) {
     if (distanceUnit === 'mi') {
-        if (meters < 160) return Math.round(meters * 3.28084) + ' ft';
+        if (meters < 1000) return Math.round(meters * 3.28084) + ' ft';
         const mi = (meters / 1000) * KM_TO_MI;
         return mi.toFixed(mi < 10 ? 2 : 1) + ' mi';
     }
@@ -1034,13 +1025,13 @@ function toggleFollowMe() {
     if (followMe && lastPos) map.panTo(lastPos, { animate: true });
 }
 
-// ===================== MEASURE DISTANCE (FIXED) =====================
+// ===================== MEASURE DISTANCE =====================
 function toggleMeasureMode() {
     measureMode = !measureMode;
     document.getElementById('measureBtn').classList.toggle('active', measureMode);
     if (measureMode) {
         if (activeMode) toggleMode(activeMode);
-        showToast("Measure mode ON. Tap map to add points. Tap 'Clear' to reset.", 'info');
+        showToast("Measure mode ON. Tap map to add points.", 'info');
         document.getElementById('measureReadout').style.display = 'flex';
         clearMeasurement();
     } else {
@@ -1058,15 +1049,9 @@ function clearMeasurement() {
 function undoMeasurePoint() {
     if (measurePoints.length === 0) return;
     measurePoints.pop();
-    // remove last marker(s)
     if (measureMarkers.length > 0) {
         const last = measureMarkers.pop();
         map.removeLayer(last);
-    }
-    // Also remove last segment label if present (we pushed two per point after first)
-    if (measureMarkers.length > 0 && measurePoints.length >= 1) {
-        // Check if last marker is a label (divIcon with class measure-label)
-        // We'll just remove one more if it exists as a label
     }
     if (measureLine) {
         if (measurePoints.length > 0) measureLine.setLatLngs(measurePoints);
@@ -1077,18 +1062,15 @@ function undoMeasurePoint() {
 function handleMeasureClick(latlng) {
     const newPoint = [latlng.lat, latlng.lng];
     measurePoints.push(newPoint);
-    // Vertex marker
     const dot = L.circleMarker(latlng, {
         radius: 5, color: '#9b5de5', fillColor: '#9b5de5', fillOpacity: 1, weight: 2
     }).addTo(map);
     measureMarkers.push(dot);
-    // Draw/update polyline
     if (!measureLine) {
         measureLine = L.polyline(measurePoints, { color: '#9b5de5', weight: 4, dashArray: '6,6' }).addTo(map);
     } else {
         measureLine.setLatLngs(measurePoints);
     }
-    // Segment label
     if (measurePoints.length > 1) {
         const prev = measurePoints[measurePoints.length - 2];
         const segDist = map.distance(prev, newPoint);
@@ -1104,18 +1086,14 @@ function handleMeasureClick(latlng) {
     updateMeasureReadout();
 }
 function updateMeasureReadout() {
-    // Total = sum of segment distances
     let total = 0;
     for (let i = 1; i < measurePoints.length; i++) {
         total += map.distance(measurePoints[i-1], measurePoints[i]);
     }
-    // Straight-line = direct distance between first and last
     let straight = 0;
     if (measurePoints.length >= 2) {
         straight = map.distance(measurePoints[0], measurePoints[measurePoints.length - 1]);
     }
-    // Walking distance ≈ total path distance (since we measure along clicked path)
-    // If only 2 points, use straight-line as approximate walking distance
     const walking = measurePoints.length >= 2 ? total : 0;
     document.getElementById('measureTotal').textContent = formatDistanceMeters(total);
     document.getElementById('measureWalk').textContent = formatDistanceMeters(walking);
@@ -1198,7 +1176,7 @@ function closeModal() {
     modalCallback = null;
 }
 
-// ===================== CONFIRM MODAL (Marker Protection) =====================
+// ===================== CONFIRM MODAL =====================
 function openConfirmModal(title, msg, callback) {
     document.getElementById('confirmTitle').textContent = title;
     document.getElementById('confirmMsg').textContent = msg;
@@ -1215,9 +1193,8 @@ function closeConfirmModal(confirmed) {
     if (confirmed && cb) cb();
 }
 
-// ===================== ADD PLACE MODAL (Manual) =====================
+// ===================== ADD PLACE MODAL =====================
 function openAddPlaceModal() {
-    // Build place type grid
     const grid = document.getElementById('placeTypeGrid');
     grid.innerHTML = '';
     manualPlaceType = 'location';
@@ -1233,12 +1210,10 @@ function openAddPlaceModal() {
             selectedColor = pt.color;
             grid.querySelectorAll('.place-type-opt').forEach(o => o.classList.remove('selected'));
             opt.classList.add('selected');
-            // Re-render emoji/color pickers to reflect default for type
             renderPlacePickers();
         };
         grid.appendChild(opt);
     });
-    // Pre-fill coordinates with current location
     if (lastPos) {
         document.getElementById('placeLatInput').value = lastPos[0].toFixed(6);
         document.getElementById('placeLngInput').value = lastPos[1].toFixed(6);
@@ -1294,7 +1269,6 @@ function submitManualPlace() {
     if (isNaN(lat) || isNaN(lng)) { showToast('Please enter valid coordinates', 'warning'); return; }
     const latlng = L.latLng(lat, lng);
     if (manualPlaceType === 'house') {
-        // Set as home (locked)
         setHome(lat, lng, false);
         showToast(`Home set to "${name}" (locked)`, 'success');
     } else if (manualPlaceType === 'friendHouse') {
@@ -1435,11 +1409,9 @@ function closeNearbyModal() {
 function findNearbyPlaces(category) {
     if (!lastPos) { showToast("Enable GPS first to find nearby places", "warning"); return; }
     showToast(`Searching for ${category.label} within ${nearbyRadius/1000} km...`, 'info');
-    // Clear previous nearby markers
     nearbyMarkers.forEach(m => map.removeLayer(m));
     nearbyMarkers = [];
     const radius = nearbyRadius;
-    // Strict Overpass query using exact OSM key/value pairs
     const query = `[out:json][timeout:25];(
         node["${category.osmKey}"="${category.osmValue}"](around:${radius},${lastPos[0]},${lastPos[1]});
         way["${category.osmKey}"="${category.osmValue}"](around:${radius},${lastPos[0]},${lastPos[1]});
@@ -1463,7 +1435,7 @@ function findNearbyPlaces(category) {
         showToast(`Found ${results.length} ${category.label}!`, 'success');
         results.forEach(r => {
             const dist = map.distance(lastPos, [r.lat, r.lng]);
-            if (dist > radius) return; // double-check radius filter
+            if (dist > radius) return;
             const isNear = dist < NEAR_THRESHOLD_M;
             const isFar = dist > FAR_THRESHOLD_M;
             const color = isNear ? '#06d6a0' : (isFar ? '#9b5de5' : '#f4a261');
@@ -1503,10 +1475,8 @@ function findNearbyPlaces(category) {
 function showShortcutRoute(lat, lng) {
     if (!lastPos) { showToast('Start walking first', 'warning'); return; }
     const dist = map.distance(lastPos, [lat, lng]);
-    // First show straight line
     shortcutPolyline.setLatLngs([lastPos, [lat, lng]]);
     showToast(`⚡ Straight-line: ${formatDistanceMeters(dist)} · Walk: ${formatWalkTime(dist)}`, 'success');
-    // Try walking route via OSRM
     fetch(`https://router.project-osrm.org/route/v1/foot/${lastPos[1]},${lastPos[0]};${lng},${lat}?overview=full&geometries=geojson`)
         .then(r => r.json())
         .then(data => {
@@ -1682,7 +1652,7 @@ window.addToFavorites = function(name, lat, lng, emoji, color) {
     saveToStorage(); refreshSidePanel();
 };
 
-// ===================== CLEAR ROUTE ONLY (Delete button) =====================
+// ===================== CLEAR ROUTE ONLY =====================
 function clearRouteOnly() {
     routePolyline.setLatLngs([]);
     homeRoutePolyline.setLatLngs([]);
@@ -1723,7 +1693,7 @@ function toggleMode(mode) {
     }
 }
 
-// ===================== SET HOME (cannot be deleted) =====================
+// ===================== SET HOME =====================
 function setHome(lat, lng, silent = false) {
     if (homeMarker) map.removeLayer(homeMarker);
     homeLatLng = [lat, lng];
@@ -1767,19 +1737,16 @@ function calculateAndShowRoute(start, end, showPanel = true, polylineObj = null)
     const mode = ROUTE_MODES[selectedRouteMode];
     showToast(`Calculating ${routeOption} ${mode.label} route...`, 'info');
     if (!mode.profile) {
-        // Straight line for train/flight
         targetPoly.setLatLngs([start, end]);
         const dist = map.distance(start, end);
         const time = dist / 1000 / mode.speed * 3600;
         showRouteSummary(dist, time, showPanel);
-        // Clear alternatives
         altRoutePolylines.forEach(p => map.removeLayer(p));
         altRoutePolylines = [];
         alternativeRoutes = [];
         document.getElementById('altRoutesRow').style.display = 'none';
         return;
     }
-    // OSRM supports alternatives=true for car profile
     const useAlternatives = (mode.profile === 'routed-car') ? '&alternatives=true&number=3' : '';
     const url = `https://router.project-osrm.org/route/v1/${mode.profile}/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&steps=true${useAlternatives}`;
     fetch(url)
@@ -1790,18 +1757,17 @@ function calculateAndShowRoute(start, end, showPanel = true, polylineObj = null)
                 targetPoly.setLatLngs([start, end]);
                 return;
             }
-            // Clear previous alternatives
             altRoutePolylines.forEach(p => map.removeLayer(p));
             altRoutePolylines = [];
             alternativeRoutes = data.routes.slice(0, 3);
             selectedAltIndex = 0;
-            // Sort routes based on routeOption
+            
             if (routeOption === 'shortest') {
                 alternativeRoutes.sort((a, b) => a.distance - b.distance);
             } else if (routeOption === 'fastest') {
                 alternativeRoutes.sort((a, b) => a.duration - b.duration);
             }
-            // Render alternatives (if more than 1)
+            
             const altRow = document.getElementById('altRoutesRow');
             altRow.innerHTML = '';
             if (alternativeRoutes.length > 1) {
@@ -1822,7 +1788,6 @@ function calculateAndShowRoute(start, end, showPanel = true, polylineObj = null)
             } else {
                 altRow.style.display = 'none';
             }
-            // Show primary route
             const route = alternativeRoutes[0];
             const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
             targetPoly.setLatLngs(coords);
@@ -1831,7 +1796,6 @@ function calculateAndShowRoute(start, end, showPanel = true, polylineObj = null)
             showRouteSummary(route.distance, route.duration, showPanel);
             renderDirections(currentRouteSteps);
             if (showPanel) openRoutePanel();
-            // Add to history
             const histEntry = `${new Date().toLocaleString()}: ${formatDistanceMeters(route.distance)} (${mode.label})`;
             routeHistory.unshift(histEntry);
             if (routeHistory.length > 50) routeHistory.pop();
@@ -1845,13 +1809,30 @@ function calculateAndShowRoute(start, end, showPanel = true, polylineObj = null)
 
 function selectAlternative(idx) {
     if (idx >= alternativeRoutes.length) return;
-    // Swap colors
-    altRoutePolylines.forEach((p, i) => {
-        if (i === 0) { p.setStyle({ weight: 4, opacity: 0.5 }); }
-        if (i === idx) { p.setStyle({ weight: 6, opacity: 0.9 }); }
-    });
-    // Re-render so selected becomes primary visually
     selectedAltIndex = idx;
+    altRoutePolylines.forEach(p => map.removeLayer(p));
+    altRoutePolylines = [];
+    
+    const altRow = document.getElementById('altRoutesRow');
+    altRow.innerHTML = '';
+    const mode = ROUTE_MODES[selectedRouteMode];
+    
+    alternativeRoutes.forEach((route, i) => {
+        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+        const isSelected = (i === idx);
+        const color = isSelected ? mode.color : '#9b5de5';
+        const poly = L.polyline(coords, { color, weight: isSelected ? 6 : 4, opacity: isSelected ? 0.9 : 0.5 }).addTo(map);
+        altRoutePolylines.push(poly);
+        
+        if (!isSelected) {
+            const btn = document.createElement('button');
+            btn.className = 'alt-route-btn';
+            btn.innerHTML = `Route ${i + 1}: ${formatDistanceMeters(route.distance)} · ${Math.ceil(route.duration/60)}m`;
+            btn.onclick = () => selectAlternative(i);
+            altRow.appendChild(btn);
+        }
+    });
+    
     const route = alternativeRoutes[idx];
     const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
     routePolyline.setLatLngs(coords);
@@ -1859,11 +1840,6 @@ function selectAlternative(idx) {
     currentRouteSteps = route.legs[0].steps || [];
     showRouteSummary(route.distance, route.duration, true);
     renderDirections(currentRouteSteps);
-    // Update alt buttons
-    const altRow = document.getElementById('altRoutesRow');
-    altRow.querySelectorAll('.alt-route-btn').forEach((b, i) => {
-        b.classList.toggle('active', i === idx - 1);
-    });
 }
 
 function showRouteSummary(dist, duration, showPanel) {
@@ -1991,7 +1967,6 @@ function onPos(pos) {
             addManualLocations();
             localStorage.setItem('seededManual', '1');
         }
-        // Fetch weather for location
         fetchWeather(lat, lng);
     } else {
         userMarker.setLatLng(newLatLng);
@@ -2000,7 +1975,8 @@ function onPos(pos) {
         const d = map.distance(lastPos, newLatLng);
         if (d >= MIN_DIST_MOVE) {
             walkPath.push(newLatLng);
-            walkPolyline.setLatLngs(walkPath);
+            // OPTIMIZATION: addLatLng instead of setLatLngs for performance
+            walkPolyline.addLatLng(newLatLng);
             totalDistance += d;
             const dt = (pos.timestamp - lastTimestamp) / 1000;
             if (dt > 0) currentSpeed = (d / dt) * 3.6;
@@ -2121,7 +2097,7 @@ function dismissSummary(reset) {
     }
 }
 
-// ===================== ADD MANUAL LOCATIONS (seed) =====================
+// ===================== ADD MANUAL LOCATIONS =====================
 function addManualLocations() {
     MANUAL_LOCATIONS.forEach(loc => {
         const icon = makeIcon(loc.emoji, 24, loc.color);
@@ -2178,7 +2154,7 @@ function refreshSidePanel() {
         }
         if (categoryFilter === 'all' || categoryFilter === 'location') {
             customLocations.forEach(c => {
-                html += `<div class="saved-item" onclick="map.setView([${c.latlng.lat},${c.latlng.lng}],16);c&&c.marker.openPopup&&setTimeout(()=>c.marker.openPopup(),300)">
+                html += `<div class="saved-item" onclick="map.setView([${c.latlng.lat},${c.latlng.lng}],16);setTimeout(()=>c.marker.openPopup(),300)">
                     <span class="icon">${c.emoji}</span>
                     <div class="info">${c.name}<small>${c.desc || `${c.latlng.lat.toFixed(4)}, ${c.latlng.lng.toFixed(4)}`}</small></div>
                     <span class="edit" onclick="event.stopPropagation();editLocation('${c.name.replace(/'/g,"\\'")}',${c.latlng.lat},${c.latlng.lng})">✏️</span>
@@ -2244,13 +2220,14 @@ function refreshSidePanel() {
     }
 }
 
-// ===================== SEARCH (places + markers) =====================
+// ===================== SEARCH =====================
 const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('searchResults');
 searchInput.addEventListener('input', () => {
+    clearTimeout(searchDebounce);
     const q = searchInput.value.trim();
     if (q.length < 2) { searchResults.style.display = 'none'; return; }
-    // First search saved markers locally
+    
     const localMatches = [];
     const ql = q.toLowerCase();
     customLocations.forEach(c => { if (c.name.toLowerCase().includes(ql) || (c.desc && c.desc.toLowerCase().includes(ql))) localMatches.push({ name: c.name, sub: c.desc || 'Location', lat: c.latlng.lat, lng: c.latlng.lng, cat: 'Saved Location' }); });
@@ -2258,25 +2235,28 @@ searchInput.addEventListener('input', () => {
     walkingFriends.forEach(f => { if (f.name.toLowerCase().includes(ql)) localMatches.push({ name: f.name, sub: 'Walking Friend', lat: f.latlng.lat, lng: f.latlng.lng, cat: 'Friend' }); });
     waypoints.forEach(w => { if (w.name.toLowerCase().includes(ql)) localMatches.push({ name: w.name, sub: 'Waypoint', lat: w.lat, lng: w.lng, cat: 'Waypoint' }); });
     favoritePlaces.forEach(f => { if (f.name.toLowerCase().includes(ql)) localMatches.push({ name: f.name, sub: 'Favorite', lat: f.lat, lng: f.lng, cat: 'Favorite' }); });
+    
     let html = localMatches.map(m => `<div class="search-result-item" onclick="goToSearch(${m.lat},${m.lng},'${m.name.replace(/'/g,"\\'")}')">${m.name}<small>${m.sub}</small><span class="cat-tag">${m.cat}</span></div>`).join('');
-    // Then fetch from Nominatim
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`)
-        .then(r => r.json())
-        .then(data => {
-            data.forEach(d => {
-                html += `<div class="search-result-item" onclick="goToSearch(${d.lat},${d.lon},'${d.display_name.replace(/'/g,"\\'")}')">${d.display_name.split(',')[0]}<small>${d.display_name}</small><span class="cat-tag">Online</span></div>`;
-            });
-            searchResults.innerHTML = html || '<div class="search-result-item" style="color:var(--muted)">No results</div>';
-            searchResults.style.display = html ? 'block' : 'none';
-        })
-        .catch(() => {
-            searchResults.innerHTML = html || '<div class="search-result-item" style="color:var(--muted)">No results</div>';
-            searchResults.style.display = html ? 'block' : 'none';
-        });
     if (localMatches.length > 0) {
         searchResults.innerHTML = html;
         searchResults.style.display = 'block';
     }
+
+    searchDebounce = setTimeout(() => {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`)
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(d => {
+                    html += `<div class="search-result-item" onclick="goToSearch(${d.lat},${d.lon},'${d.display_name.replace(/'/g,"\\'")}')">${d.display_name.split(',')[0]}<small>${d.display_name}</small><span class="cat-tag">Online</span></div>`;
+                });
+                searchResults.innerHTML = html || '<div class="search-result-item" style="color:var(--muted)">No results</div>';
+                searchResults.style.display = html ? 'block' : 'none';
+            })
+            .catch(() => {
+                searchResults.innerHTML = html || '<div class="search-result-item" style="color:var(--muted)">No results</div>';
+                searchResults.style.display = html ? 'block' : 'none';
+            });
+    }, 500);
 });
 function goToSearch(lat, lon, name) {
     map.setView([lat, lon], 16);
@@ -2349,7 +2329,8 @@ function getWeatherIcon(code) {
     return 'cloud';
 }
 function fetchWeather(lat, lng) {
-    fetch(`https://open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`)
+    // FIXED: Corrected API URL to api.open-meteo.com
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`)
         .then(r => r.json())
         .then(data => {
             if (data.current_weather) {
