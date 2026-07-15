@@ -1,0 +1,2556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ultimate Walk Tracker Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --danger: #ef476f;
+            --dark: #1d2b36;
+            --card: #ffffff;
+            --light: #f8f9fa;
+            --success: #06d6a0;
+            --warning: #f4a261;
+            --purple: #9b5de5;
+            --text: #1d2b36;
+            --muted: #8899aa;
+            --border: #e8ecf0;
+            --bg: #eef2f5;
+            --shadow: rgba(0,0,0,0.08);
+        }
+        .dark-mode {
+            --primary: #6b83f5;
+            --dark: #0f1923;
+            --card: #1b2838;
+            --light: #243447;
+            --text: #e0e8f0;
+            --muted: #6b8299;
+            --border: #2a3a4a;
+            --bg: #0a1520;
+            --shadow: rgba(0,0,0,0.3);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* Toast */
+        #toastContainer {
+            position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+            z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+        }
+        .toast {
+            background: var(--dark); color: white; padding: 10px 20px; border-radius: 12px;
+            font-size: 0.85em; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+            animation: toastIn 0.4s ease, toastOut 0.4s ease 2.6s forwards; white-space: nowrap;
+        }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.warning { border-left: 4px solid var(--warning); }
+        .toast.danger { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--primary); }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+
+        /* Header */
+        #header {
+            background: var(--dark); color: white; padding: 8px 14px;
+            font-size: 0.78em; font-weight: 600; display: flex;
+            justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+        .header-left, .header-right { display: flex; align-items: center; gap: 8px; }
+        #weatherWidget, #gpsWidget {
+            background: rgba(255,255,255,0.12); padding: 4px 10px; border-radius: 8px;
+            cursor: pointer; font-size: 0.9em; transition: background 0.2s;
+        }
+        #weatherWidget:hover, #gpsWidget:hover { background: rgba(255,255,255,0.2); }
+        .header-btn {
+            background: rgba(255,255,255,0.1); border: none; color: white; width: 30px; height: 30px;
+            border-radius: 8px; cursor: pointer; font-size: 0.85em; display: flex;
+            align-items: center; justify-content: center; transition: background 0.2s;
+        }
+        .header-btn:hover { background: rgba(255,255,255,0.2); }
+        .save-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); display: inline-block; }
+        .save-dot.saving { animation: blink 0.6s ease infinite; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+        /* Search Bar */
+        #searchBar {
+            position: absolute; top: 12px; left: 12px; z-index: 1000;
+            background: var(--card); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow);
+            display: flex; align-items: center; padding: 4px 10px; gap: 8px; width: 240px;
+        }
+        #searchBar i { color: var(--muted); }
+        #searchBar input {
+            border: none; background: transparent; outline: none; font-family: 'Inter', sans-serif;
+            font-size: 0.85em; flex: 1; color: var(--text); padding: 6px 0;
+        }
+        #searchResults {
+            position: absolute; top: 48px; left: 12px; z-index: 1000; width: 240px;
+            background: var(--card); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow);
+            max-height: 250px; overflow-y: auto; display: none;
+        }
+        .search-result-item {
+            padding: 10px 14px; cursor: pointer; font-size: 0.8em; font-weight: 600;
+            border-bottom: 1px solid var(--border); color: var(--text);
+        }
+        .search-result-item:hover { background: var(--light); }
+        .search-result-item:last-child { border-bottom: none; border-radius: 0 0 12px 12px; }
+        .search-result-item small { display:block; font-weight:500; color:var(--muted); margin-top:2px; }
+
+        /* Dashboard */
+        #dashboard {
+            display: flex; background: var(--card); padding: 10px 8px;
+            box-shadow: 0 2px 12px var(--shadow); z-index: 1000;
+            border-bottom: 1px solid var(--border); flex-shrink: 0;
+            overflow-x: auto; -webkit-overflow-scrolling: touch;
+        }
+        #dashboard::-webkit-scrollbar { display: none; }
+        .stat-box {
+            text-align: center; min-width: 80px; flex-shrink: 0;
+            padding: 4px 10px; position: relative;
+        }
+        .stat-box:not(:last-child)::after {
+            content: ''; position: absolute; right: 0; top: 15%; height: 70%;
+            width: 1px; background: var(--border);
+        }
+        .stat-box h3 { font-size: 1.35em; font-weight: 800; color: var(--text); line-height: 1.1; }
+        .stat-box p { font-size: 0.58em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 2px; }
+
+        /* Map */
+        #map { flex-grow: 1; width: 100%; z-index: 1; position: relative; background: var(--bg); }
+
+        /* Map Controls */
+        .map-controls-wrapper {
+            position: absolute; top: 12px; right: 12px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+        }
+        .map-card {
+            background: var(--card); padding: 6px 10px; border-radius: 10px;
+            box-shadow: 0 4px 15px var(--shadow);
+        }
+        .map-card select {
+            border: none; background: transparent; font-family: 'Inter', sans-serif;
+            font-weight: 600; font-size: 0.8em; cursor: pointer; outline: none; color: var(--text);
+        }
+        .map-btn {
+            width: 42px; height: 42px; background: var(--card); border: none; border-radius: 50%;
+            box-shadow: 0 3px 12px var(--shadow); font-size: 1.05em; cursor: pointer;
+            color: var(--text); display: flex; align-items: center; justify-content: center;
+            transition: transform 0.15s, background 0.2s, color 0.2s; position: relative;
+        }
+        .map-btn:active { transform: scale(0.92); }
+        .map-btn.active { background: var(--warning); color: white; }
+        .map-btn i { pointer-events: none; }
+        .map-btn .badge {
+            position: absolute; top: -2px; right: -2px; background: var(--danger);
+            color: white; font-size: 0.55em; padding: 2px 5px; border-radius: 8px; font-weight: 700;
+        }
+
+        /* Zoom & Compass Controls */
+        .zoom-controls, .compass-widget {
+            position: absolute; z-index: 1000; display: flex; flex-direction: column; gap: 2px;
+        }
+        .zoom-controls { bottom: 20px; left: 12px; }
+        .compass-widget { bottom: 20px; right: 12px; }
+        .zoom-btn, .compass-btn {
+            width: 38px; height: 38px; background: var(--card); border: 1px solid var(--border);
+            font-size: 1.2em; cursor: pointer; color: var(--text); display: flex;
+            align-items: center; justify-content: center; transition: background 0.2s;
+        }
+        .zoom-btn:first-child { border-radius: 10px 10px 0 0; }
+        .zoom-btn:last-child { border-radius: 0 0 10px 10px; }
+        .compass-btn { border-radius: 50%; width: 44px; height: 44px; font-size: 1.3em; }
+        .compass-needle { display: inline-block; transition: transform 0.3s; }
+        .zoom-btn:hover, .compass-btn:hover { background: var(--light); }
+
+        /* Route Panel */
+        #routePanel {
+            position: absolute; bottom: 0; left: 0; right: 0; z-index: 1001;
+            background: var(--card); border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 25px rgba(0,0,0,0.15); transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); max-height: 55vh;
+            display: flex; flex-direction: column;
+        }
+        #routePanel.open { transform: translateY(0); }
+        .route-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 10px auto 6px; flex-shrink: 0; cursor: pointer; }
+        .route-modes { display: flex; gap: 6px; padding: 6px 16px; overflow-x: auto; flex-shrink: 0; }
+        .route-modes::-webkit-scrollbar { display: none; }
+        .mode-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+            padding: 8px 12px; border-radius: 12px; border: 2px solid var(--border);
+            background: transparent; cursor: pointer; min-width: 60px; transition: all 0.2s;
+            font-family: 'Inter', sans-serif; color: var(--text);
+        }
+        .mode-btn i { font-size: 1.2em; }
+        .mode-btn span { font-size: 0.6em; font-weight: 700; }
+        .mode-btn.active { border-color: var(--primary); background: rgba(67,97,238,0.1); color: var(--primary); }
+        .route-summary {
+            padding: 10px 16px; display: flex; gap: 20px; align-items: center;
+            border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); flex-shrink: 0;
+        }
+        .route-summary .big { font-size: 1.4em; font-weight: 800; }
+        .route-summary .sub { font-size: 0.7em; color: var(--muted); font-weight: 600; }
+        .route-summary .eta { margin-left: auto; text-align: right; }
+        .route-close-btn {
+            background: var(--light); border: none; width: 32px; height: 32px;
+            border-radius: 50%; cursor: pointer; font-size: 0.9em; display: flex;
+            align-items: center; justify-content: center; color: var(--muted); margin-left: auto;
+        }
+        .directions-list { flex: 1; overflow-y: auto; padding: 8px 16px 16px; }
+        .dir-step {
+            display: flex; gap: 12px; padding: 10px 0; align-items: flex-start;
+            border-bottom: 1px solid var(--border);
+        }
+        .dir-step:last-child { border-bottom: none; }
+        .dir-step.current { background: rgba(67,97,238,0.08); border-radius: 8px; padding: 10px; margin: 4px 0; }
+        .dir-icon {
+            width: 32px; height: 32px; border-radius: 8px; background: var(--light);
+            display: flex; align-items: center; justify-content: center; font-size: 0.85em;
+            flex-shrink: 0; color: var(--primary);
+        }
+        .dir-text { font-size: 0.82em; font-weight: 600; line-height: 1.3; }
+        .dir-dist { font-size: 0.7em; color: var(--muted); font-weight: 600; margin-top: 2px; }
+
+        /* Reopen route pill (shown when panel closed but route active) */
+        #reopenRoutePill {
+            position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; background: var(--dark); color: white; padding: 8px 16px;
+            border-radius: 20px; font-size: 0.78em; font-weight: 700; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25); display: none; align-items: center; gap: 8px;
+        }
+
+        /* Custom Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998;
+            display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: var(--card); border-radius: 16px; padding: 24px;
+            width: 100%; max-width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalIn 0.3s ease; max-height: 85vh; overflow-y: auto;
+        }
+        @keyframes modalIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-box h3 { font-size: 1.1em; font-weight: 800; margin-bottom: 14px; }
+        .modal-box input, .modal-box select {
+            width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px;
+            font-family: 'Inter', sans-serif; font-size: 0.95em; outline: none;
+            background: var(--light); color: var(--text); margin-bottom: 12px;
+        }
+        .modal-box input:focus, .modal-box select:focus { border-color: var(--primary); }
+        .modal-actions { display: flex; gap: 8px; }
+        .modal-actions button { flex: 1; padding: 10px; font-size: 0.9em; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; font-family: 'Inter', sans-serif; }
+        .btn-cancel { background: var(--light); color: var(--text); }
+        .btn-confirm { background: var(--primary); color: white; }
+        .emoji-picker, .color-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .emoji-opt, .color-opt {
+            width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 1.2em;
+            border: 2px solid var(--border); transition: transform 0.15s;
+        }
+        .emoji-opt.selected, .color-opt.selected { border-color: var(--primary); transform: scale(1.1); }
+        .color-opt { width: 30px; height: 30px; }
+
+        /* Nearby category modal grid */
+        .nearby-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:8px; margin-bottom: 8px; }
+        .nearby-opt {
+            display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px;
+            border-radius:10px; border:2px solid var(--border); cursor:pointer; font-size:0.68em;
+            font-weight:700; color:var(--text); background:var(--light);
+        }
+        .nearby-opt span.emoji { font-size:1.4em; }
+        .nearby-opt:hover { border-color: var(--primary); }
+
+        /* Measure Distance floating readout */
+        #measureReadout {
+            position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+            z-index: 1001; background: var(--dark); color: white; padding: 8px 16px;
+            border-radius: 20px; font-size: 0.8em; font-weight: 700; display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25); align-items: center; gap: 10px;
+        }
+        #measureReadout button {
+            background: rgba(255,255,255,0.15); border: none; color: white; padding: 3px 9px;
+            border-radius: 8px; font-size: 0.85em; font-weight: 700; cursor: pointer;
+        }
+
+        /* Units toggle pill */
+        #unitToggle {
+            background: rgba(255,255,255,0.12); padding: 4px 10px; border-radius: 8px;
+            cursor: pointer; font-size: 0.85em; transition: background 0.2s; font-weight: 700;
+        }
+        #unitToggle:hover { background: rgba(255,255,255,0.2); }
+
+        /* Stats tab cards */
+        .stats-card {
+            background: var(--light); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+        }
+        .stats-card .label { font-size: 0.65em; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+        .stats-card .value { font-size: 1.3em; font-weight: 800; color: var(--text); margin-top: 2px; }
+        .stats-row { display: flex; gap: 8px; }
+        .stats-row .stats-card { flex: 1; }
+
+        /* Trip summary modal */
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+        .summary-item { background: var(--light); border-radius: 10px; padding: 10px; text-align: center; }
+        .summary-item .big { font-size: 1.25em; font-weight: 800; }
+        .summary-item .sub { font-size: 0.62em; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-top: 2px; }
+
+        /* checkbox rows used in side panel */
+        .toggle-row { margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 0.8em; font-weight: 600; }
+
+        /* Side Panel */
+        #sidePanel {
+            position: absolute; top: 0; right: -280px; width: 280px; height: 100%;
+            background: var(--card); z-index: 1002; transition: right 0.3s;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column;
+        }
+        #sidePanel.open { right: 0; }
+        .side-panel-header {
+            padding: 14px 16px; background: var(--dark); color: white;
+            display: flex; justify-content: space-between; align-items: center; font-weight: 700;
+        }
+        .side-panel-tabs { display: flex; border-bottom: 1px solid var(--border); }
+        .side-tab {
+            flex: 1; padding: 10px; text-align: center; cursor: pointer; font-size: 0.75em;
+            font-weight: 700; color: var(--muted); border-bottom: 2px solid transparent;
+        }
+        .side-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .side-panel-content { flex: 1; overflow-y: auto; padding: 8px; }
+        .saved-item {
+            padding: 10px 12px; border-radius: 10px; cursor: pointer; margin-bottom: 6px;
+            background: var(--light); display: flex; align-items: center; gap: 10px;
+            font-size: 0.82em; font-weight: 600;
+        }
+        .saved-item:hover { background: rgba(67,97,238,0.1); }
+        .saved-item .icon { font-size: 1.2em; }
+        .saved-item .info { flex: 1; }
+        .saved-item .info small { display: block; color: var(--muted); font-weight: 500; }
+        .saved-item .del { color: var(--danger); cursor: pointer; padding: 4px; }
+
+        /* Bottom Controls */
+        .controls {
+            background: var(--card); padding: 10px 14px;
+            box-shadow: 0 -2px 12px var(--shadow); display: flex; gap: 8px;
+            z-index: 1000; border-top: 1px solid var(--border); flex-shrink: 0;
+        }
+        .controls button {
+            padding: 12px 14px; font-size: 0.9em; cursor: pointer; border: none;
+            border-radius: 12px; font-weight: 700; color: white;
+            transition: transform 0.1s, background 0.3s; box-shadow: 0 3px 10px var(--shadow);
+            font-family: 'Inter', sans-serif; display: flex; align-items: center;
+            justify-content: center; gap: 6px;
+        }
+        .controls button:active { transform: scale(0.96); }
+        #startBtn { background: var(--primary); flex: 2; }
+        #startBtn.recording { background: var(--danger); animation: pulse 2s infinite; }
+        #homeBtn { background: var(--dark); flex: 1.5; }
+        #sosBtn { background: var(--danger); flex: 0.6; font-size: 0.75em; }
+        #shareBtn { background: var(--light); color: var(--text); flex: 0.6; }
+        #menuBtn { background: var(--light); color: var(--text); flex: 0.6; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239,71,111,0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(239,71,111,0); }
+            100% { box-shadow: 0 0 0 0 rgba(239,71,111,0); }
+        }
+
+        /* Leaflet overrides */
+        .leaflet-container { font-family: 'Inter', sans-serif; }
+        .pulse-marker { border-radius: 50%; }
+        .pulse-marker div { animation: pulseGps 2s infinite; }
+        @keyframes pulseGps {
+            0% { box-shadow: 0 0 0 0 rgba(67,97,238,0.4); }
+            70% { box-shadow: 0 0 0 14px rgba(67,97,238,0); }
+            100% { box-shadow: 0 0 0 0 rgba(67,97,238,0); }
+        }
+        .leaflet-popup-content-wrapper { border-radius: 12px; font-family: 'Inter', sans-serif; }
+        .leaflet-popup-content { margin: 10px 14px; font-size: 0.85em; }
+        .popup-btn {
+            display: inline-block; padding: 5px 12px; margin-top: 6px; border-radius: 8px;
+            background: var(--danger); color: white; border: none; cursor: pointer;
+            font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.8em;
+        }
+        .popup-btn.navigate { background: var(--primary); margin-right: 4px; }
+        .popup-btn.fav { background: var(--warning); margin-right: 4px; }
+
+        /* Speed indicator floating */
+        #speedIndicator {
+            position: absolute; bottom: 70px; left: 12px; z-index: 999;
+            background: var(--dark); color: white; padding: 8px 14px; border-radius: 12px;
+            font-weight: 800; font-size: 1.1em; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        #speedIndicator small { font-size: 0.55em; font-weight: 600; opacity: 0.7; display: block; }
+
+        /* Nearby places filter (legacy dropdown, kept hidden, replaced by modal) */
+        #nearbyFilter { display:none; }
+    </style>
+</head>
+<body>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<!-- Custom Modal -->
+<div class="modal-overlay" id="customModal">
+    <div class="modal-box">
+        <h3 id="modalTitle">Enter Name</h3>
+        <input type="text" id="modalInput" placeholder="Type here..." autocomplete="off" />
+        <div id="modalExtra"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-confirm" id="modalConfirmBtn">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Nearby Category Modal -->
+<div class="modal-overlay" id="nearbyModal">
+    <div class="modal-box">
+        <h3>Nearby Places</h3>
+        <div class="nearby-grid" id="nearbyGrid"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeNearbyModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Trip Summary Modal -->
+<div class="modal-overlay" id="summaryModal">
+    <div class="modal-box">
+        <h3>🎉 Walk Summary</h3>
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="dismissSummary(false)">Keep Walking</button>
+            <button class="btn-confirm" onclick="dismissSummary(true)">Reset Trip</button>
+        </div>
+    </div>
+</div>
+
+<!-- Header -->
+<div id="header">
+    <div class="header-left">
+        <span class="save-dot" id="saveDot" title="Auto-save active"></span>
+        <span style="font-size:0.85em">
+            Start: <span id="startTimeTxt" style="color:var(--success)">--:--</span>
+            &nbsp;|&nbsp; Home ETA: <span id="etaHomeTxt" style="color:var(--warning)">--:--</span>
+        </span>
+    </div>
+    <div class="header-right">
+        <div id="gpsWidget" title="GPS Accuracy">
+            <i class="fas fa-satellite-dish"></i> --
+        </div>
+        <div id="weatherWidget" onclick="toggleTempUnit()" title="Click to toggle unit">
+            <i class="fas fa-spinner fa-spin" style="font-size:0.8em"></i> Loading...
+        </div>
+        <div id="unitToggle" onclick="toggleDistanceUnit()" title="Toggle km/miles">KM</div>
+        <button class="header-btn" id="voiceToggleBtn" onclick="toggleVoiceEnabled()" title="Toggle Voice Navigation">
+            <i class="fas fa-volume-high" id="voiceToggleIcon"></i>
+        </button>
+        <button class="header-btn" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+            <i class="fas fa-moon" id="darkModeIcon"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard">
+    <div class="stat-box"><h3 id="stepsCount">0</h3><p>Steps</p></div>
+    <div class="stat-box"><h3 id="distanceCount">0.00</h3><p>KM</p></div>
+    <div class="stat-box"><h3 id="speedCount">0.0</h3><p>km/h</p></div>
+    <div class="stat-box"><h3 id="paceCount">--:--</h3><p>Pace</p></div>
+    <div class="stat-box"><h3 id="calorieCount">0</h3><p>kcal</p></div>
+    <div class="stat-box"><h3 id="durationCount">00:00</h3><p>Duration</p></div>
+    <div class="stat-box"><h3 id="elevationCount">--</h3><p>Elev (m)</p></div>
+</div>
+
+<!-- Map -->
+<div id="map">
+    <!-- Search Bar -->
+    <div id="searchBar">
+        <i class="fas fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Search this area..." autocomplete="off" />
+        <i class="fas fa-xmark" onclick="clearSearch()" style="cursor:pointer"></i>
+    </div>
+    <div id="searchResults"></div>
+
+    <div class="map-controls-wrapper">
+        <div class="map-card">
+            <select id="mapStyle" onchange="changeMapStyle()">
+                <option value="streets">Standard</option>
+                <option value="satellite">Satellite</option>
+                <option value="dark">Dark Mode</option>
+                <option value="topo">Topographic</option>
+            </select>
+        </div>
+        <div class="map-card">
+            <select id="routeOption" onchange="changeRouteOption()" title="Route Type">
+                <option value="fastest">Fastest</option>
+                <option value="shortest">Shortest</option>
+                <option value="walking">Walking</option>
+            </select>
+        </div>
+        <button class="map-btn" id="addLocBtn" onclick="toggleMode('loc')" title="Add Location"><i class="fas fa-map-pin"></i></button>
+        <button class="map-btn" id="addFriendHouseBtn" onclick="toggleMode('friendHouse')" title="Add Friend's House"><i class="fas fa-house-chimney"></i></button>
+        <button class="map-btn" id="addFriendBtn" onclick="toggleMode('friend')" title="Add Walking Friend"><i class="fas fa-person-walking"></i></button>
+        <button class="map-btn" id="addWaypointBtn" onclick="toggleMode('waypoint')" title="Add Waypoint (Multi-Destination)"><i class="fas fa-map-marked-alt"></i></button>
+        <button class="map-btn" onclick="openNearbyModal()" title="Nearby Places"><i class="fas fa-store"></i></button>
+        <button class="map-btn" id="measureBtn" onclick="toggleMeasureMode()" title="Measure Distance"><i class="fas fa-ruler"></i></button>
+        <button class="map-btn" id="followMeBtn" onclick="toggleFollowMe()" title="Follow Me (auto-center while walking)"><i class="fas fa-crosshairs"></i></button>
+        <button class="map-btn" onclick="captureMap()" title="Screenshot & Share"><i class="fas fa-camera"></i></button>
+        <button class="map-btn" onclick="locateMe()" title="Find Me"><i class="fas fa-location-crosshairs"></i></button>
+        <button class="map-btn" onclick="confirmReset()" title="Reset Trip"><i class="fas fa-trash-can"></i></button>
+    </div>
+
+    <!-- Zoom Controls -->
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="map.zoomIn()"><i class="fas fa-plus"></i></button>
+        <button class="zoom-btn" onclick="map.zoomOut()"><i class="fas fa-minus"></i></button>
+    </div>
+
+    <!-- Compass Widget -->
+    <div class="compass-widget">
+        <button class="compass-btn" onclick="resetNorth()" title="Reset North">
+            <span class="compass-needle" id="compassNeedle">🧭</span>
+        </button>
+    </div>
+
+    <!-- Speed Indicator -->
+    <div id="speedIndicator">
+        <span id="speedValue">0.0</span> km/h
+        <small>Current Speed</small>
+    </div>
+
+    <!-- Reopen route pill -->
+    <div id="reopenRoutePill" onclick="openRoutePanel()">
+        <i class="fas fa-route"></i> <span id="reopenRouteTxt">Route active — tap to view directions</span>
+    </div>
+
+    <!-- Measure Distance readout -->
+    <div id="measureReadout">
+        <i class="fas fa-ruler"></i> <span id="measureValue">0 m</span>
+        <button onclick="clearMeasurement()"><i class="fas fa-xmark"></i> Clear</button>
+    </div>
+
+    <!-- Route Panel -->
+    <div id="routePanel">
+        <div class="route-handle" onclick="toggleRoutePanelCollapse()"></div>
+        <div class="route-modes" id="routeModes"></div>
+        <div class="route-summary" id="routeSummary" style="display:none">
+            <div>
+                <div class="big" id="routeDist">--</div>
+                <div class="sub">Distance</div>
+            </div>
+            <div>
+                <div class="big" id="routeTime">--</div>
+                <div class="sub">Duration</div>
+            </div>
+            <div class="eta">
+                <div class="big" id="routeEta">--</div>
+                <div class="sub">Arrival</div>
+            </div>
+            <button class="route-close-btn" onclick="closeRoutePanel()" title="Hide panel (route stays active)"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="directions-list" id="directionsList"></div>
+    </div>
+
+    <!-- Side Panel -->
+    <div id="sidePanel">
+        <div class="side-panel-header">
+            <span>Saved Places & History</span>
+            <button class="header-btn" onclick="toggleSidePanel()"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="side-panel-tabs">
+            <div class="side-tab active" onclick="switchTab('locations', event)">Locations</div>
+            <div class="side-tab" onclick="switchTab('favorites', event)">Favorites</div>
+            <div class="side-tab" onclick="switchTab('history', event)">History</div>
+            <div class="side-tab" onclick="switchTab('recordings', event)">Recordings</div>
+            <div class="side-tab" onclick="switchTab('stats', event)">Stats</div>
+        </div>
+        <div class="side-panel-content" id="sidePanelContent"></div>
+    </div>
+</div>
+
+<!-- Bottom Controls -->
+<div class="controls">
+    <button id="startBtn"><i class="fas fa-play"></i> Start Walk</button>
+    <button id="homeBtn"><i class="fas fa-route"></i> Route Home</button>
+    <button id="sosBtn" onclick="triggerSOS()"><i class="fas fa-phone"></i> SOS</button>
+    <button id="shareBtn" onclick="shareLocation()" title="Share"><i class="fas fa-link"></i></button>
+    <button id="menuBtn" onclick="toggleSidePanel()" title="Menu"><i class="fas fa-bars"></i></button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+// ===================== CONFIGURATION =====================
+const ROUTE_MODES = {
+    car:    { profile: 'routed-car',  speed: 50,  label: 'Car',     icon: 'fa-car',         color: '#4361ee' },
+    bike:   { profile: 'routed-bike', speed: 20,  label: 'Bicycle',  icon: 'fa-bicycle',     color: '#06d6a0' },
+    walk:   { profile: 'routed-foot', speed: 5,   label: 'Walk',     icon: 'fa-person-walking', color: '#f4a261' },
+    run:    { profile: 'routed-foot', speed: 10,  label: 'Run',      icon: 'fa-person-running', color: '#ef476f' },
+    bus:    { profile: 'routed-car',  speed: 30,  label: 'Bus',      icon: 'fa-bus',         color: '#9b5de5' },
+    train:  { profile: null,          speed: 80,  label: 'Train',    icon: 'fa-train',       color: '#118ab2' },
+    flight: { profile: null,          speed: 500, label: 'Flight',   icon: 'fa-plane',       color: '#073b4c' }
+};
+const NEARBY_CATEGORIES = [
+    { type: 'restaurant', label: 'Restaurants', emoji: '🍽️' },
+    { type: 'hospital',   label: 'Hospitals',   emoji: '🏥' },
+    { type: 'fuel',       label: 'Petrol Pumps',emoji: '⛽' },
+    { type: 'atm',        label: 'ATMs',        emoji: '🏧' },
+    { type: 'hotel',      label: 'Hotels',      emoji: '🏨', osmKey: 'tourism' },
+    { type: 'pharmacy',   label: 'Pharmacies',  emoji: '💊' },
+    { type: 'police',     label: 'Police',      emoji: '🚓' },
+    { type: 'bus_station', label: 'Bus Stops',  emoji: '🚌', osmKey: 'highway', osmValue: 'bus_stop' },
+    { type: 'mall',       label: 'Shopping',    emoji: '🛍️', osmKey: 'shop', osmValue: 'mall' },
+    { type: 'cafe',       label: 'Cafes',       emoji: '☕' },
+    { type: 'supermarket',label: 'Supermarkets',emoji: '🛒' },
+    { type: 'park',       label: 'Parks',       emoji: '🌳', osmKey: 'leisure' }
+];
+const STEP_THRESHOLD = 1.2;
+const MIN_DIST_MOVE = 3;
+const CALORIE_PER_METER_WALK = 0.04;
+const SAVE_INTERVAL = 15000;
+const OFF_ROUTE_THRESHOLD_M = 45;
+const EMOJI_OPTIONS = ['📌','📍','🏠','🏡','🏃','☕','🍽️','⛽','🏥','🅿️','🌳','🎯','⭐','❤️','🎓','💼','🛒','🏨','🏦','🏧'];
+const COLOR_OPTIONS = ['#4361ee','#ef476f','#06d6a0','#f4a261','#9b5de5','#118ab2','#ffd166','#073b4c'];
+
+// ===================== STATE =====================
+let walkPath = [];
+let totalDistance = 0;
+let stepCount = 0;
+let currentSpeed = 0;
+let lastPos = null;
+let lastTimestamp = 0;
+let startTime = null;
+let watchId = null;
+
+// Permanent markers
+let homeMarker = null;
+let userMarker = null;
+let customLocations = []; 
+let friendHouses = []; 
+let walkingFriends = []; 
+let favoritePlaces = []; 
+let waypoints = []; 
+let nearbyMarkers = []; 
+
+// Mode/state
+let activeMode = null;
+let selectedRouteMode = 'car';
+let routeOption = 'fastest';
+let currentRouteData = null;
+let currentRouteSteps = [];
+let currentStepIndex = 0;
+let isDarkMode = false;
+let isAutoTheme = false;
+let tempUnit = 'F';
+let weatherData = null;
+let elevationGain = 0;
+let lastElevation = null;
+let isStepInProgress = false;
+let lastStepTime = 0;
+let lastMilestone = 0;
+let modalCallback = null;
+let selectedEmoji = '📌';
+let selectedColor = '#4361ee';
+let selectedVoiceLang = 'en-US';
+let availableVoices = [];
+let routeHistory = []; 
+let routeRecordings = []; 
+let currentRecording = null;
+let isPlayingRecording = false;
+let gpsAccuracy = null;
+let lastAnnouncedStep = -1;
+let sidePanelTab = 'locations';
+let compassHeading = 0;
+let durationTimer = null;
+let elapsedSeconds = 0; 
+let lastResumeTime = null;
+let offlineCache = {}; 
+let userCountryCode = null;
+let lastOffRouteRecalc = 0;
+let routePanelManuallyClosed = false;
+
+// New feature state
+let distanceUnit = 'km'; // 'km' | 'mi'
+let voiceEnabled = true;
+let followMe = false;
+let measureMode = false;
+let measurePoints = [];
+let measureLine = null;
+let measureMarkers = [];
+let pendingSummaryStats = null;
+let allTimeStats = { totalDistance: 0, totalSteps: 0, totalCalories: 0, totalWalks: 0, longestWalk: 0, weekDistance: 0, weekStart: null };
+const KM_TO_MI = 0.621371;
+
+// ===================== MAP INIT (Fixed Rotation & Auto-Center) =====================
+const map = L.map('map', {
+    zoomControl: false,
+    doubleClickZoom: true,
+    touchZoom: true,        
+    scrollWheelZoom: true,
+    rotate: false,          
+    bearing: 0,
+    rotateControl: false,
+    attributionControl: true,
+    zoomAnimation: true
+}).setView([40.7128, -74.0060], 15);
+
+// HARD LOCK: ensure the map layer is never rotated/skewed (always aligned N/S/E/W)
+map.getPane('mapPane').style.transform = map.getPane('mapPane').style.transform; // no-op init
+map.on('rotate', () => { map.setBearing && map.setBearing(0); });
+
+let currentLayer;
+function changeMapStyle() {
+    const style = document.getElementById('mapStyle').value;
+    if (currentLayer) map.removeLayer(currentLayer);
+    const opts = { attribution: '&copy; OpenStreetMap contributors', maxZoom: 19 };
+    if (style === 'satellite')
+        currentLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { ...opts, attribution: 'Esri' });
+    else if (style === 'dark')
+        currentLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { ...opts, attribution: 'CARTO', subdomains: 'abcd' });
+    else if (style === 'topo')
+        currentLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { ...opts, attribution: 'OpenTopoMap' });
+    else
+        currentLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts);
+    currentLayer.addTo(map);
+    setTimeout(() => map.invalidateSize(), 200);
+}
+changeMapStyle();
+setTimeout(() => map.invalidateSize(), 500);
+
+// STRICTLY NO DOTTED LINES (dashArray: '')
+let walkPolyline = L.polyline([], { color: '#4361ee', weight: 6, lineCap: 'round', lineJoin: 'round', dashArray: '' }).addTo(map);
+let routePolyline = L.polyline([], { color: '#4361ee', weight: 5, opacity: 0.8, dashArray: '' }).addTo(map);
+let homeRoutePolyline = L.polyline([], { color: '#ef476f', weight: 5, opacity: 0.7, dashArray: '' }).addTo(map);
+
+// ===================== ICONS =====================
+function makeIcon(emoji, size = 28, color = null) {
+    const bg = color ? `background:${color};border-radius:50%;width:${size+6}px;height:${size+6}px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);` : '';
+    return L.divIcon({
+        className: '',
+        html: `<div style="font-size:${size}px;transform:translate(-${size/2}px,-${size}px);pointer-events:auto;${bg ? `padding:2px;` : ''}">${bg ? `<span style="font-size:${size*0.7}px">${emoji}</span>` : emoji}</div>`,
+        iconSize: [size, size], iconAnchor: [size/2, size]
+    });
+}
+const homeIcon = makeIcon('🏠', 30);
+const waypointIcon = makeIcon('🎯', 24, '#9b5de5');
+
+function createUserMarkerIcon() {
+    return L.divIcon({
+        className: 'pulse-marker',
+        html: '<div style="width:18px;height:18px;background:#4361ee;border:3px solid white;border-radius:50%;box-shadow:0 0 10px rgba(67,97,238,0.5)"></div>',
+        iconSize: [18, 18], iconAnchor: [9, 9]
+    });
+}
+
+// ===================== UNITS =====================
+function formatDistanceMeters(meters) {
+    if (distanceUnit === 'mi') {
+        if (meters < 160) return Math.round(meters * 3.28084) + ' ft';
+        const mi = (meters / 1000) * KM_TO_MI;
+        return mi.toFixed(mi < 10 ? 2 : 1) + ' mi';
+    }
+    if (meters < 1000) return Math.round(meters) + ' m';
+    const km = meters / 1000;
+    return km.toFixed(km < 10 ? 2 : 1) + ' km';
+}
+function formatSpeedKmh(kmh) {
+    if (distanceUnit === 'mi') return (kmh * KM_TO_MI).toFixed(1) + ' mph';
+    return kmh.toFixed(1) + ' km/h';
+}
+function toggleDistanceUnit() {
+    distanceUnit = distanceUnit === 'km' ? 'mi' : 'km';
+    document.getElementById('unitToggle').textContent = distanceUnit.toUpperCase();
+    updateDashboard();
+    showToast(`Units: ${distanceUnit === 'mi' ? 'Miles' : 'Kilometers'}`, 'info');
+    saveToStorage();
+}
+
+function toggleVoiceEnabled() {
+    voiceEnabled = !voiceEnabled;
+    document.getElementById('voiceToggleIcon').className = voiceEnabled ? 'fas fa-volume-high' : 'fas fa-volume-xmark';
+    if (!voiceEnabled && 'speechSynthesis' in window) speechSynthesis.cancel();
+    showToast(`Voice navigation ${voiceEnabled ? 'enabled' : 'muted'}`, 'info');
+    saveToStorage();
+}
+
+function toggleFollowMe() {
+    followMe = !followMe;
+    document.getElementById('followMeBtn').classList.toggle('active', followMe);
+    showToast(followMe ? "Follow Me on — map will auto-center on you" : "Follow Me off", 'info');
+    if (followMe && lastPos) map.panTo(lastPos, { animate: true });
+}
+
+// ===================== MEASURE DISTANCE TOOL =====================
+function toggleMeasureMode() {
+    measureMode = !measureMode;
+    document.getElementById('measureBtn').classList.toggle('active', measureMode);
+    if (measureMode) {
+        if (activeMode) toggleMode(activeMode); // don't conflict with marker placement modes
+        showToast("Measure mode: tap points on the map to measure distance", "info");
+        document.getElementById('measureReadout').style.display = 'flex';
+    } else {
+        clearMeasurement();
+        document.getElementById('measureReadout').style.display = 'none';
+    }
+}
+function clearMeasurement() {
+    measurePoints = [];
+    if (measureLine) { map.removeLayer(measureLine); measureLine = null; }
+    measureMarkers.forEach(m => map.removeLayer(m));
+    measureMarkers = [];
+    document.getElementById('measureValue').textContent = '0 m';
+}
+function handleMeasureClick(latlng) {
+    measurePoints.push([latlng.lat, latlng.lng]);
+    const dot = L.circleMarker(latlng, { radius: 5, color: '#9b5de5', fillColor: '#9b5de5', fillOpacity: 1 }).addTo(map);
+    measureMarkers.push(dot);
+    if (!measureLine) {
+        measureLine = L.polyline(measurePoints, { color: '#9b5de5', weight: 4, dashArray: '' }).addTo(map);
+    } else {
+        measureLine.setLatLngs(measurePoints);
+    }
+    let total = 0;
+    for (let i = 1; i < measurePoints.length; i++) total += map.distance(measurePoints[i-1], measurePoints[i]);
+    document.getElementById('measureValue').textContent = total > 0 ? formatDistanceMeters(total) : '0 m';
+}
+
+// ===================== TOAST =====================
+function showToast(msg, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    container.appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+}
+
+// ===================== CUSTOM MODAL =====================
+function openModal(title, placeholder, callback, showEmojiPicker = false, showColorPicker = false) {
+    const modal = document.getElementById('customModal');
+    document.getElementById('modalTitle').textContent = title;
+    const input = document.getElementById('modalInput');
+    input.value = '';
+    input.placeholder = placeholder || 'Type here...';
+    input.style.display = 'block';
+
+    const extra = document.getElementById('modalExtra');
+    extra.innerHTML = '';
+
+    if (showEmojiPicker) {
+        const emojiDiv = document.createElement('div');
+        emojiDiv.className = 'emoji-picker';
+        EMOJI_OPTIONS.forEach(em => {
+            const opt = document.createElement('div');
+            opt.className = `emoji-opt ${em === selectedEmoji ? 'selected' : ''}`;
+            opt.textContent = em;
+            opt.onclick = () => {
+                selectedEmoji = em;
+                emojiDiv.querySelectorAll('.emoji-opt').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+            };
+            emojiDiv.appendChild(opt);
+        });
+        extra.appendChild(emojiDiv);
+    }
+
+    if (showColorPicker) {
+        const colorDiv = document.createElement('div');
+        colorDiv.className = 'color-picker';
+        COLOR_OPTIONS.forEach(c => {
+            const opt = document.createElement('div');
+            opt.className = `color-opt ${c === selectedColor ? 'selected' : ''}`;
+            opt.style.background = c;
+            opt.onclick = () => {
+                selectedColor = c;
+                colorDiv.querySelectorAll('.color-opt').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+            };
+            colorDiv.appendChild(opt);
+        });
+        extra.appendChild(colorDiv);
+    }
+
+    modal.classList.add('open');
+    modalCallback = callback;
+    setTimeout(() => input.focus(), 100);
+    document.getElementById('modalConfirmBtn').onclick = () => {
+        const val = input.value.trim() || (showEmojiPicker ? selectedEmoji : '');
+        if (val || showEmojiPicker) { closeModal(); callback(val); }
+    };
+}
+function closeModal() {
+    document.getElementById('customModal').classList.remove('open');
+    modalCallback = null;
+}
+document.getElementById('modalInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && modalCallback) {
+        const val = e.target.value.trim();
+        if (val) { closeModal(); modalCallback(val); }
+    }
+});
+
+// ===================== NEARBY CATEGORY MODAL =====================
+function openNearbyModal() {
+    const grid = document.getElementById('nearbyGrid');
+    grid.innerHTML = '';
+    NEARBY_CATEGORIES.forEach(cat => {
+        const opt = document.createElement('div');
+        opt.className = 'nearby-opt';
+        opt.innerHTML = `<span class="emoji">${cat.emoji}</span><span>${cat.label}</span>`;
+        opt.onclick = () => { closeNearbyModal(); findNearbyPlaces(cat); };
+        grid.appendChild(opt);
+    });
+    document.getElementById('nearbyModal').classList.add('open');
+}
+function closeNearbyModal() {
+    document.getElementById('nearbyModal').classList.remove('open');
+}
+
+// ===================== MAP CLICK HANDLER (marker placement, no preview line) =====================
+map.on('click', (e) => {
+    if (measureMode) { handleMeasureClick(e.latlng); return; }
+    if (!activeMode) return;
+
+    if (activeMode === 'loc') {
+        openModal('Name This Location', 'e.g. Coffee Shop', (name) => {
+            const icon = makeIcon(selectedEmoji, 24, selectedColor);
+            const marker = L.marker(e.latlng, { icon }).addTo(map);
+            const lat = e.latlng.lat, lng = e.latlng.lng;
+            marker.bindPopup(`<b>${name}</b><br><button class="popup-btn navigate" onclick="routeToPoint(${lat},${lng})">Navigate</button><button class="popup-btn fav" onclick="addToFavorites('${name}',${lat},${lng},'${selectedEmoji}','${selectedColor}')">★ Favorite</button><button class="popup-btn" onclick="removeCustomLoc(this)">Remove</button>`);
+            customLocations.push({ marker, name, latlng: e.latlng, emoji: selectedEmoji, color: selectedColor });
+            showToast(`Location "${name}" added`, 'success');
+            saveToStorage();
+        }, true, true);
+    }
+    else if (activeMode === 'friendHouse') {
+        openModal("Name Friend's House", 'e.g. John\'s House', (name) => {
+            const icon = makeIcon('🏡', 28, selectedColor);
+            const marker = L.marker(e.latlng, { icon }).addTo(map);
+            const lat = e.latlng.lat, lng = e.latlng.lng;
+            marker.bindPopup(`<b>${name}'s House</b><br><button class="popup-btn navigate" onclick="routeToPoint(${lat},${lng})">Navigate</button><button class="popup-btn" onclick="removeFriendHouse(${lat},${lng})">Remove</button>`);
+            friendHouses.push({ marker, name, latlng: e.latlng, emoji: '🏡', color: selectedColor });
+            showToast(`Friend's House "${name}" added`, 'success');
+            saveToStorage();
+        }, false, true);
+    }
+    else if (activeMode === 'friend') {
+        openModal('Name Walking Friend', 'e.g. Sarah', (name) => {
+            const icon = makeIcon('🏃', 26, selectedColor);
+            const marker = L.marker(e.latlng, { icon }).addTo(map);
+            const lat = e.latlng.lat, lng = e.latlng.lng;
+            marker.bindPopup(`<b>${name}</b><br><button class="popup-btn" onclick="removeWalkingFriend(${lat},${lng})">Remove</button>`);
+            walkingFriends.push({ marker, name, latlng: e.latlng, emoji: '🏃', color: selectedColor });
+            showToast(`Walking friend "${name}" added`, 'success');
+            saveToStorage();
+        }, false, true);
+    }
+    else if (activeMode === 'waypoint') {
+        const marker = L.marker(e.latlng, { icon: waypointIcon }).addTo(map);
+        waypoints.push({ lat: e.latlng.lat, lng: e.latlng.lng, marker });
+        showToast(`Waypoint ${waypoints.length} added`, 'info');
+        if (waypoints.length >= 2) {
+            calculateMultiDestinationRoute();
+        }
+    }
+
+    if (activeMode !== 'waypoint') {
+        toggleMode(activeMode);
+    }
+});
+
+// Remove handlers
+window.removeCustomLoc = function(btn) {
+    customLocations = customLocations.filter(c => {
+        if (c.marker.isPopupOpen()) { map.removeLayer(c.marker); return false; }
+        return true;
+    });
+    showToast("Location removed", 'warning');
+    saveToStorage();
+    refreshSidePanel();
+};
+window.removeFriendHouse = function(lat, lng) {
+    friendHouses = friendHouses.filter(f => {
+        if (Math.abs(f.latlng.lat - lat) < 0.0001 && Math.abs(f.latlng.lng - lng) < 0.0001) {
+            map.removeLayer(f.marker); return false;
+        }
+        return true;
+    });
+    showToast("Friend's house removed", 'warning');
+    saveToStorage();
+    refreshSidePanel();
+};
+window.removeWalkingFriend = function(lat, lng) {
+    walkingFriends = walkingFriends.filter(f => {
+        if (Math.abs(f.latlng.lat - lat) < 0.0001 && Math.abs(f.latlng.lng - lng) < 0.0001) {
+            map.removeLayer(f.marker); return false;
+        }
+        return true;
+    });
+    showToast("Walking friend removed", 'warning');
+    saveToStorage();
+    refreshSidePanel();
+};
+window.removeHome = function() {
+    if (!homeMarker) return;
+    map.removeLayer(homeMarker);
+    homeMarker = null;
+    homeRoutePolyline.setLatLngs([]);
+    showToast("Home removed", 'warning');
+    saveToStorage();
+};
+window.routeToPoint = function(lat, lng) {
+    if (!lastPos) { showToast("Start walking first to navigate", "warning"); return; }
+    calculateAndShowRoute(lastPos, [lat, lng], true);
+};
+window.addToFavorites = function(name, lat, lng, emoji, color) {
+    favoritePlaces.push({ name, lat, lng, emoji, color });
+    showToast(`"${name}" added to favorites`, 'success');
+    saveToStorage();
+    refreshSidePanel();
+};
+
+function toggleMode(mode) {
+    activeMode = activeMode === mode ? null : mode;
+    document.getElementById('addLocBtn').classList.toggle('active', activeMode === 'loc');
+    document.getElementById('addFriendHouseBtn').classList.toggle('active', activeMode === 'friendHouse');
+    document.getElementById('addFriendBtn').classList.toggle('active', activeMode === 'friend');
+    document.getElementById('addWaypointBtn').classList.toggle('active', activeMode === 'waypoint');
+    if (activeMode) {
+        const labels = { loc: 'Location', friendHouse: "Friend's House", friend: 'Walking Friend', waypoint: 'Waypoint' };
+        showToast(`${labels[mode]} Placement Mode active. Tap on map to place.`, 'info');
+    }
+}
+
+// ===================== START / PAUSE WALK =====================
+const startBtn = document.getElementById('startBtn');
+startBtn.addEventListener('click', async () => {
+    if (watchId) {
+        // PAUSE
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        startBtn.innerHTML = '<i class="fas fa-play"></i> Resume Walk';
+        startBtn.classList.remove('recording');
+        pauseTimer(); 
+        document.getElementById('speedIndicator').style.display = 'none';
+        showToast("Walk paused. Timer stopped.", 'warning');
+        return;
+    }
+
+    // Close only transient UI (popups, side panel). The route/directions panel
+    // is left exactly as-is: if it was open it stays open, if closed it stays closed.
+    map.closePopup();
+    document.getElementById('sidePanel').classList.remove('open');
+
+    if (typeof DeviceMotionEvent?.requestPermission === 'function') {
+        try {
+            const perm = await DeviceMotionEvent.requestPermission();
+            if (perm === 'granted') window.addEventListener('devicemotion', handleMotion);
+        } catch (e) { console.warn('Motion permission denied'); }
+    } else {
+        window.addEventListener('devicemotion', handleMotion);
+    }
+
+    startBtn.innerHTML = '<i class="fas fa-pause"></i> Pause Walk';
+    startBtn.classList.add('recording');
+    document.getElementById('speedIndicator').style.display = 'block';
+
+    if (!currentRecording) {
+        currentRecording = { name: `Walk ${new Date().toLocaleString()}`, path: [], startTime: Date.now(), positions: [] };
+    }
+
+    if (!homeMarker && !lastPos) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            const c = [pos.coords.latitude, pos.coords.longitude];
+            setHome(c);
+            startPosWatch();
+        }, err => showToast("Cannot get location: " + err.message, 'danger'), { enableHighAccuracy: true });
+    } else {
+        startPosWatch();
+    }
+});
+
+// Duration timer with proper pause/resume
+function startTimer() {
+    if (!durationTimer) {
+        lastResumeTime = Date.now();
+        durationTimer = setInterval(() => {
+            const now = Date.now();
+            const sessionElapsed = Math.floor((now - lastResumeTime) / 1000);
+            const total = elapsedSeconds + sessionElapsed;
+            updateDurationDisplay(total);
+        }, 1000);
+    }
+}
+function pauseTimer() {
+    if (durationTimer) {
+        clearInterval(durationTimer);
+        durationTimer = null;
+        const now = Date.now();
+        const sessionElapsed = Math.floor((now - lastResumeTime) / 1000);
+        elapsedSeconds += sessionElapsed;
+        lastResumeTime = null;
+    }
+}
+function resetTimer() {
+    if (durationTimer) { clearInterval(durationTimer); durationTimer = null; }
+    elapsedSeconds = 0;
+    lastResumeTime = null;
+    updateDurationDisplay(0);
+}
+function updateDurationDisplay(totalSec) {
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (h > 0) document.getElementById('durationCount').textContent = `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    else document.getElementById('durationCount').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function setHome(coords) {
+    if (homeMarker) map.removeLayer(homeMarker);
+    homeMarker = L.marker(coords, { icon: homeIcon }).addTo(map);
+    homeMarker.bindPopup(`<b>Home Base</b><br><button class="popup-btn navigate" onclick="routeHome()">Navigate Home</button><button class="popup-btn" onclick="removeHome()">Remove</button>`);
+    if (!lastPos) {
+        walkPath.push(coords);
+        lastPos = coords;
+        lastTimestamp = Date.now();
+        lastElevation = null;
+        map.setView(coords, 17, { animate: true });
+    }
+    startTime = startTime || new Date();
+    document.getElementById('startTimeTxt').textContent = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    saveToStorage();
+}
+
+function startPosWatch() {
+    if (watchId) return;
+    watchId = navigator.geolocation.watchPosition(pos => {
+        const c = [pos.coords.latitude, pos.coords.longitude];
+        const now = pos.timestamp;
+
+        gpsAccuracy = pos.coords.accuracy;
+        updateGpsWidget();
+
+        if (lastPos) {
+            const distMoved = map.distance(lastPos, c);
+            if (distMoved > MIN_DIST_MOVE) {
+                totalDistance += distMoved;
+                const timeDiffH = (now - lastTimestamp) / 3600000;
+                currentSpeed = timeDiffH > 0 ? (distMoved / 1000) / timeDiffH : 0;
+
+                if (pos.coords.altitude !== null && lastElevation !== null) {
+                    const elevDiff = pos.coords.altitude - lastElevation;
+                    if (elevDiff > 0) elevationGain += elevDiff;
+                }
+                if (pos.coords.altitude !== null) lastElevation = pos.coords.altitude;
+
+                walkPath.push(c);
+                walkPolyline.setLatLngs(walkPath);
+
+                if (currentRecording) {
+                    currentRecording.path.push(c);
+                    currentRecording.positions.push({ lat: c[0], lng: c[1], t: Date.now(), speed: currentSpeed });
+                }
+
+                if (userMarker) map.removeLayer(userMarker);
+                userMarker = L.marker(c, { icon: createUserMarkerIcon(), zIndexOffset: 1000 }).addTo(map);
+
+                lastPos = c;
+                lastTimestamp = now;
+
+                if (followMe) map.panTo(c, { animate: true });
+
+                updateDashboard();
+                checkMilestone();
+                updateLiveETA();
+                checkRouteProgress(c); 
+            }
+        } else {
+            lastPos = c;
+            lastTimestamp = now;
+            if (pos.coords.altitude !== null) lastElevation = pos.coords.altitude;
+        }
+    }, err => showToast("GPS Error: " + err.message, 'danger'), { enableHighAccuracy: true, maximumAge: 2000 });
+
+    startTimer();
+}
+
+// ===================== GPS Accuracy Widget =====================
+function updateGpsWidget() {
+    if (gpsAccuracy === null) return;
+    const w = document.getElementById('gpsWidget');
+    let icon, color, label;
+    if (gpsAccuracy < 10) { icon = 'fa-satellite-dish'; color = '#06d6a0'; label = 'Excellent'; }
+    else if (gpsAccuracy < 25) { icon = 'fa-satellite-dish'; color = '#f4a261'; label = 'Good'; }
+    else { icon = 'fa-satellite-dish'; color = '#ef476f'; label = 'Poor'; }
+    w.innerHTML = `<i class="fas ${icon}" style="color:${color}"></i> ±${Math.round(gpsAccuracy)}m`;
+    w.title = `GPS Accuracy: ${label} (±${Math.round(gpsAccuracy)}m)`;
+}
+
+// ===================== ROUTE HOME =====================
+document.getElementById('homeBtn').addEventListener('click', () => {
+    if (!lastPos) { showToast("Start walking first to set your position", "warning"); return; }
+    if (!homeMarker) { showToast("No home set yet. Start a walk to set home.", "warning"); return; }
+    routeHome();
+});
+
+window.routeHome = function() {
+    if (!lastPos || !homeMarker) { showToast("Need position and home set", "warning"); return; }
+    calculateAndShowRoute(lastPos, [homeMarker.getLatLng().lat, homeMarker.getLatLng().lng], true);
+    speakVoice("Calculating route to home. Turn by turn directions will begin shortly.");
+};
+
+// ===================== ROUTE OPTIONS =====================
+function changeRouteOption() {
+    routeOption = document.getElementById('routeOption').value;
+    if (currentRouteData?.from && currentRouteData?.to) {
+        calculateAndShowRoute(currentRouteData.from, currentRouteData.to, true);
+    }
+}
+
+// ===================== ROUTE PANEL OPEN/CLOSE (does NOT affect active route/navigation) =====================
+function openRoutePanel() {
+    document.getElementById('routePanel').classList.add('open');
+    document.getElementById('reopenRoutePill').style.display = 'none';
+    routePanelManuallyClosed = false;
+}
+function closeRoutePanel() {
+    // Only hides the panel. The route polylines, currentRouteData and voice
+    // navigation state are preserved so navigation keeps running in the background.
+    document.getElementById('routePanel').classList.remove('open');
+    routePanelManuallyClosed = true;
+    if (currentRouteData) {
+        document.getElementById('reopenRoutePill').style.display = 'flex';
+    }
+}
+function toggleRoutePanelCollapse() {
+    const panel = document.getElementById('routePanel');
+    if (panel.classList.contains('open')) closeRoutePanel();
+    else openRoutePanel();
+}
+// Fully cancels the active route (used by Reset)
+function cancelActiveRoute() {
+    document.getElementById('routePanel').classList.remove('open');
+    document.getElementById('reopenRoutePill').style.display = 'none';
+    routePolyline.setLatLngs([]);
+    homeRoutePolyline.setLatLngs([]);
+    currentRouteData = null;
+    currentRouteSteps = [];
+    currentStepIndex = 0;
+    lastAnnouncedStep = -1;
+    routePanelManuallyClosed = false;
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+}
+
+// ===================== ROUTING =====================
+function buildRouteModeSelector() {
+    const container = document.getElementById('routeModes');
+    container.innerHTML = '';
+    Object.entries(ROUTE_MODES).forEach(([key, cfg]) => {
+        const btn = document.createElement('button');
+        btn.className = `mode-btn ${key === selectedRouteMode ? 'active' : ''}`;
+        btn.innerHTML = `<i class="fas ${cfg.icon}"></i><span>${cfg.label}</span>`;
+        btn.onclick = () => {
+            selectedRouteMode = key;
+            container.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (currentRouteData?.from && currentRouteData?.to) {
+                calculateAndShowRoute(currentRouteData.from, currentRouteData.to, true);
+            }
+        };
+        container.appendChild(btn);
+    });
+}
+
+async function calculateAndShowRoute(from, to, enableVoice = false) {
+    currentRouteData = { from, to };
+    currentRouteSteps = [];
+    currentStepIndex = 0;
+    lastAnnouncedStep = -1;
+    const cfg = ROUTE_MODES[selectedRouteMode];
+    buildRouteModeSelector();
+
+    showToast(`Calculating ${cfg.label} route (${routeOption})...`, 'info');
+
+    if (!cfg.profile) {
+        const dist = map.distance(from, to);
+        const durSec = (dist / 1000 / cfg.speed) * 3600;
+        displayRoute([from, to], dist, durSec, cfg, true, []);
+        if (enableVoice) speakVoice(`Direct route to destination. Distance ${Math.round(dist/1000)} kilometers. Estimated travel time ${formatDuration(durSec)}.`);
+        return;
+    }
+
+    let osrmUrl = `https://routing.openstreetmap.de/${cfg.profile}/route/v1/driving/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson&steps=true&alternatives=true`;
+
+    try {
+        const resp = await fetch(osrmUrl);
+        const data = await resp.json();
+        if (data.code !== 'Ok' || !data.routes?.length) throw new Error('No route');
+
+        let route;
+        if (data.routes.length > 1) {
+            if (routeOption === 'shortest') {
+                route = data.routes.reduce((a, b) => a.distance < b.distance ? a : b);
+            } else if (routeOption === 'walking' && selectedRouteMode !== 'walk') {
+                route = data.routes.reduce((a, b) => a.duration < b.duration ? a : b);
+            } else {
+                route = data.routes.reduce((a, b) => a.duration < b.duration ? a : b);
+            }
+        } else {
+            route = data.routes[0];
+        }
+
+        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+        const steps = route.legs[0]?.steps || [];
+        currentRouteSteps = steps;
+
+        const routeDist = route.distance;
+        const adjustedDurSec = (routeDist / 1000 / cfg.speed) * 3600;
+
+        displayRoute(coords, routeDist, adjustedDurSec, cfg, false, steps);
+        if (enableVoice) {
+            speakVoice(`Route calculated. Distance ${Math.round(routeDist/1000)} kilometers. Estimated time ${formatDuration(adjustedDurSec)}. Begin navigation.`);
+            setTimeout(() => announceNextStep(), 1500);
+        }
+    } catch (err) {
+        // OSRM routing unavailable — fall back to a straight-line estimate
+        const dist = map.distance(from, to);
+        const roadEstimate = dist * 1.35;
+        const durSec = (roadEstimate / 1000 / cfg.speed) * 3600;
+        displayRoute([from, to], roadEstimate, durSec, cfg, true, []);
+        if (enableVoice) speakVoice(`Estimated route. Distance ${Math.round(roadEstimate/1000)} kilometers.`);
+    }
+}
+
+async function calculateMultiDestinationRoute() {
+    if (waypoints.length < 2 || !lastPos) return;
+    showToast("Calculating multi-destination route...", 'info');
+    const points = [lastPos, ...waypoints.map(w => [w.lat, w.lng])];
+    const coords = [];
+    const allSteps = [];
+    let totalDist = 0;
+
+    for (let i = 0; i < points.length - 1; i++) {
+        const from = points[i], to = points[i+1];
+        const cfg = ROUTE_MODES[selectedRouteMode];
+        if (!cfg.profile) {
+            coords.push(from, to);
+            totalDist += map.distance(from, to);
+        } else {
+            try {
+                const url = `https://routing.openstreetmap.de/${cfg.profile}/route/v1/driving/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson&steps=true`;
+                const resp = await fetch(url);
+                const data = await resp.json();
+                if (data.routes?.[0]) {
+                    const r = data.routes[0];
+                    coords.push(...r.geometry.coordinates.map(c => [c[1], c[0]]));
+                    totalDist += r.distance;
+                    allSteps.push(...(r.legs[0]?.steps || []));
+                }
+            } catch (e) { coords.push(from, to); totalDist += map.distance(from, to); }
+        }
+    }
+    const durSec = (totalDist / 1000 / ROUTE_MODES[selectedRouteMode].speed) * 3600;
+    currentRouteSteps = allSteps;
+    currentRouteData = { from: lastPos, to: [waypoints[waypoints.length-1].lat, waypoints[waypoints.length-1].lng] };
+    displayRoute(coords, totalDist, durSec, ROUTE_MODES[selectedRouteMode], false, allSteps);
+    speakVoice(`Multi-destination route with ${waypoints.length} stops. Total distance ${Math.round(totalDist/1000)} kilometers.`);
+}
+
+function displayRoute(coords, dist, durSec, cfg, isEstimate, steps = []) {
+    routePolyline.setLatLngs(coords);
+    routePolyline.setStyle({ color: cfg.color, dashArray: '' });
+    homeRoutePolyline.setLatLngs(coords);
+    homeRoutePolyline.setStyle({ color: cfg.color, opacity: 0.4, dashArray: '' });
+    map.fitBounds(routePolyline.getBounds(), { padding: [60, 60] });
+
+    document.getElementById('routeSummary').style.display = 'flex';
+    document.getElementById('routeDist').textContent = formatDistanceMeters(dist);
+    document.getElementById('routeTime').textContent = formatDuration(durSec);
+    const eta = new Date(Date.now() + durSec * 1000);
+    document.getElementById('routeEta').textContent = eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const dirList = document.getElementById('directionsList');
+    dirList.innerHTML = '';
+
+    if (steps.length > 0) {
+        steps.forEach((step, idx) => {
+            const instr = getManeuverInstruction(step);
+            const iconClass = getDirectionIconClass(step.maneuver);
+            const stepDist = step.distance >= 1000 ? (step.distance / 1000).toFixed(1) + ' km' : Math.round(step.distance) + ' m';
+            dirList.innerHTML += `
+                <div class="dir-step ${idx === currentStepIndex ? 'current' : ''}" id="step-${idx}">
+                    <div class="dir-icon"><i class="fas ${iconClass}"></i></div>
+                    <div>
+                        <div class="dir-text">${instr}</div>
+                        <div class="dir-dist">${stepDist}</div>
+                    </div>
+                </div>`;
+        });
+    } else {
+        dirList.innerHTML = `
+            <div class="dir-step">
+                <div class="dir-icon"><i class="fas ${cfg.icon}"></i></div>
+                <div>
+                    <div class="dir-text">Direct ${cfg.label} route (estimated)</div>
+                    <div class="dir-dist">${(dist / 1000).toFixed(1)} km &middot; ${formatDuration(durSec)}</div>
+                </div>
+            </div>
+            <div class="dir-step">
+                <div class="dir-icon"><i class="fas fa-flag-checkered"></i></div>
+                <div><div class="dir-text">Arrive at destination</div></div>
+            </div>`;
+    }
+
+    // Only auto-open the panel if the user hasn't explicitly minimized it
+    if (!routePanelManuallyClosed) {
+        document.getElementById('routePanel').classList.add('open');
+        document.getElementById('reopenRoutePill').style.display = 'none';
+    } else {
+        document.getElementById('reopenRoutePill').style.display = 'flex';
+    }
+    showToast(`${cfg.label} route: ${(dist / 1000).toFixed(1)} km, ${formatDuration(durSec)}`, 'success');
+
+    if (currentRouteData) {
+        routeHistory.unshift({
+            date: new Date().toISOString(),
+            distance: dist,
+            duration: durSec,
+            from: currentRouteData.from,
+            to: currentRouteData.to,
+            mode: cfg.label
+        });
+        if (routeHistory.length > 50) routeHistory.pop();
+        saveToStorage();
+    }
+}
+
+// ===================== VOICE NAVIGATION =====================
+function speakVoice(text) {
+    if (!voiceEnabled) return;
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = selectedVoiceLang;
+    utter.rate = 1.0;
+    const voice = availableVoices.find(v => v.lang === selectedVoiceLang) || availableVoices.find(v => v.lang.startsWith(selectedVoiceLang.split('-')[0]));
+    if (voice) utter.voice = voice;
+    speechSynthesis.speak(utter);
+}
+
+function announceNextStep() {
+    if (currentStepIndex >= currentRouteSteps.length) {
+        speakVoice("You have reached your destination.");
+        showToast("Destination reached!", "success");
+        sendNotification("Navigation Complete", "You have reached your destination.");
+        return;
+    }
+    const step = currentRouteSteps[currentStepIndex];
+    if (!step) return;
+    const instr = getManeuverInstruction(step);
+    const type = step.maneuver?.type || '';
+    const mod = step.maneuver?.modifier || '';
+
+    let voiceInstr = "";
+    if (type === 'depart') voiceInstr = `Start. ${instr}`;
+    else if (type === 'arrive') voiceInstr = "You have reached your destination.";
+    else if (type === 'turn') voiceInstr = `Turn ${mod}. ${instr}`;
+    else if (type === 'continue') voiceInstr = `Continue straight. ${instr}`;
+    else if (type === 'roundabout') voiceInstr = `Enter roundabout. ${instr}`;
+    else voiceInstr = instr;
+
+    speakVoice(voiceInstr);
+    lastAnnouncedStep = currentStepIndex;
+}
+
+function checkRouteProgress(currentLatLng) {
+    if (currentRouteSteps.length === 0) return;
+    const step = currentRouteSteps[currentStepIndex];
+    if (!step) return;
+
+    // Off-route detection: distance from current position to the closest
+    // point on the remaining route polyline. If too far, auto-recalculate.
+    const routeLatLngs = routePolyline.getLatLngs();
+    if (routeLatLngs.length > 1) {
+        let minDist = Infinity;
+        for (let i = 0; i < routeLatLngs.length - 1; i++) {
+            const d = L.LineUtil.pointToSegmentDistance(
+                map.latLngToLayerPoint(currentLatLng),
+                map.latLngToLayerPoint(routeLatLngs[i]),
+                map.latLngToLayerPoint(routeLatLngs[i + 1])
+            );
+            // convert pixel distance roughly to meters using current zoom scale
+            const metersPerPixel = 156543.03392 * Math.cos(currentLatLng[0] * Math.PI / 180) / Math.pow(2, map.getZoom());
+            const distMeters = d * metersPerPixel;
+            if (distMeters < minDist) minDist = distMeters;
+        }
+        const now = Date.now();
+        if (minDist > OFF_ROUTE_THRESHOLD_M && currentRouteData?.to && (now - lastOffRouteRecalc > 15000)) {
+            lastOffRouteRecalc = now;
+            showToast("Off route — recalculating...", "warning");
+            speakVoice("Recalculating route.");
+            calculateAndShowRoute(currentLatLng, currentRouteData.to, true);
+            return;
+        }
+    }
+
+    if (step.maneuver?.location) {
+        const maneuverLatLng = [step.maneuver.location[1], step.maneuver.location[0]];
+        const distToManeuver = map.distance(currentLatLng, maneuverLatLng);
+
+        if (distToManeuver < 30 && lastAnnouncedStep < currentStepIndex) {
+            if (currentStepIndex < currentRouteSteps.length - 1) {
+                speakVoice(getManeuverInstruction(step) + `. Then, ${getManeuverInstruction(currentRouteSteps[currentStepIndex + 1])}`);
+                lastAnnouncedStep = currentStepIndex;
+            } else {
+                announceNextStep();
+            }
+        }
+
+        if (distToManeuver < 15) {
+            currentStepIndex++;
+            document.querySelectorAll('.dir-step').forEach(el => el.classList.remove('current'));
+            const nextEl = document.getElementById(`step-${currentStepIndex}`);
+            if (nextEl) {
+                nextEl.classList.add('current');
+                nextEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            if (currentStepIndex >= currentRouteSteps.length) {
+                speakVoice("You have reached your destination.");
+                sendNotification("Navigation Complete", "You have reached your destination.");
+            }
+        }
+    }
+}
+
+function getManeuverInstruction(step) {
+    const type = step.maneuver?.type || '';
+    const mod = step.maneuver?.modifier || '';
+    const name = step.name || 'unnamed road';
+    switch (type) {
+        case 'depart': return `Head ${mod || 'forward'} on ${name}`;
+        case 'arrive': return `You have reached your destination`;
+        case 'turn': return `Turn ${mod} onto ${name}`;
+        case 'new name': return `Continue onto ${name}`;
+        case 'merge': return `Merge ${mod} onto ${name}`;
+        case 'fork': return `Take the ${mod} fork onto ${name}`;
+        case 'roundabout': return `Enter roundabout, exit onto ${name}`;
+        case 'rotary': return `Enter rotary, exit onto ${name}`;
+        case 'end of road': return `At the end, turn ${mod} onto ${name}`;
+        case 'continue': return `Continue ${mod} on ${name}`;
+        default: return `Continue on ${name}`;
+    }
+}
+
+function getDirectionIconClass(maneuver) {
+    const type = maneuver?.type || '';
+    const mod = maneuver?.modifier || '';
+    if (type === 'depart') return 'fa-location-arrow';
+    if (type === 'arrive') return 'fa-flag-checkered';
+    if (type === 'roundabout' || type === 'rotary') return 'fa-rotate-right';
+    if (mod.includes('sharp left')) return 'fa-arrow-turn-up';
+    if (mod.includes('sharp right')) return 'fa-arrow-turn-up';
+    if (mod.includes('slight left')) return 'fa-arrow-up';
+    if (mod.includes('slight right')) return 'fa-arrow-up';
+    if (mod.includes('left')) return 'fa-arrow-left';
+    if (mod.includes('right')) return 'fa-arrow-right';
+    if (mod.includes('uturn')) return 'fa-arrow-rotate-left';
+    return 'fa-arrow-up';
+}
+
+function formatDuration(sec) {
+    if (sec < 60) return Math.round(sec) + ' sec';
+    if (sec < 3600) return Math.round(sec / 60) + ' min';
+    const h = Math.floor(sec / 3600);
+    const m = Math.round((sec % 3600) / 60);
+    return `${h}h ${m}m`;
+}
+
+// ===================== DASHBOARD =====================
+function updateDashboard() {
+    document.getElementById('stepsCount').textContent = stepCount;
+    const distVal = distanceUnit === 'mi' ? (totalDistance / 1000) * KM_TO_MI : totalDistance / 1000;
+    document.getElementById('distanceCount').textContent = distVal.toFixed(2);
+    document.querySelector('#dashboard .stat-box:nth-child(2) p').textContent = distanceUnit === 'mi' ? 'MI' : 'KM';
+    const speedDisplay = distanceUnit === 'mi' ? currentSpeed * KM_TO_MI : currentSpeed;
+    document.getElementById('speedCount').textContent = speedDisplay > 0 ? speedDisplay.toFixed(1) : '0.0';
+    document.querySelector('#dashboard .stat-box:nth-child(3) p').textContent = distanceUnit === 'mi' ? 'mph' : 'km/h';
+    document.getElementById('speedValue').textContent = currentSpeed > 0 ? formatSpeedKmh(currentSpeed) : '0.0 km/h';
+
+    if (currentSpeed > 0.5) {
+        const paceSpeed = distanceUnit === 'mi' ? currentSpeed * KM_TO_MI : currentSpeed;
+        const paceMin = 60 / paceSpeed;
+        const pm = Math.floor(paceMin);
+        const ps = Math.round((paceMin - pm) * 60);
+        document.getElementById('paceCount').textContent = `${pm}:${String(ps).padStart(2, '0')}`;
+    } else {
+        document.getElementById('paceCount').textContent = '--:--';
+    }
+
+    const cal = Math.round(totalDistance * CALORIE_PER_METER_WALK);
+    document.getElementById('calorieCount').textContent = cal;
+
+    if (lastElevation !== null) document.getElementById('elevationCount').textContent = Math.round(lastElevation);
+}
+
+function updateLiveETA() {
+    if (currentSpeed > 0.5 && homeMarker && lastPos) {
+        const distHome = map.distance(lastPos, [homeMarker.getLatLng().lat, homeMarker.getLatLng().lng]);
+        const timeMin = Math.round((distHome / 1000 / currentSpeed) * 60);
+        const eta = new Date(Date.now() + timeMin * 60000);
+        document.getElementById('etaHomeTxt').textContent = eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ` (${timeMin}m)`;
+    } else {
+        document.getElementById('etaHomeTxt').textContent = startTime ? 'Paused' : '--:--';
+    }
+}
+
+function checkMilestone() {
+    const km = totalDistance / 1000;
+    const milestones = [0.5, 1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 50];
+    for (const m of milestones) {
+        if (km >= m && lastMilestone < m) {
+            lastMilestone = m;
+            showToast(`Milestone reached: ${m} km!`, 'success');
+            speakVoice(`You have reached ${m} kilometers!`);
+            sendNotification("Milestone Reached", `Congratulations! You've walked ${m} km.`);
+        }
+    }
+}
+
+// ===================== STEP COUNTER =====================
+function handleMotion(event) {
+    if (!watchId) return;
+    const acc = event.accelerationIncludingGravity;
+    if (!acc || acc.x === null) return;
+    const mag = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+    const delta = Math.abs(mag - 9.8);
+    const now = Date.now();
+    if (delta > STEP_THRESHOLD && !isStepInProgress && (now - lastStepTime > 300)) {
+        stepCount++;
+        isStepInProgress = true;
+        lastStepTime = now;
+    } else if (delta < STEP_THRESHOLD * 0.6) {
+        isStepInProgress = false;
+    }
+}
+
+// ===================== SEARCH PLACES (location-biased, nearby-first) =====================
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    const q = e.target.value.trim();
+    if (q.length < 3) {
+        document.getElementById('searchResults').style.display = 'none';
+        return;
+    }
+    searchTimeout = setTimeout(() => searchPlaces(q), 400);
+});
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+async function searchPlaces(query) {
+    try {
+        // Prefer the user's live/current position over just the map's viewport
+        // so results are anchored near the user first, then nearby cities,
+        // then the wider country only if nothing close is found.
+        const anchor = lastPos || (userMarker ? [userMarker.getLatLng().lat, userMarker.getLatLng().lng] : map.getCenter());
+        const anchorLat = Array.isArray(anchor) ? anchor[0] : anchor.lat;
+        const anchorLng = Array.isArray(anchor) ? anchor[1] : anchor.lng;
+
+        const b = map.getBounds();
+        const viewbox = `${b.getWest()},${b.getNorth()},${b.getEast()},${b.getSouth()}`;
+        let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&viewbox=${viewbox}&bounded=1&addressdetails=1`;
+        if (userCountryCode) url += `&countrycodes=${userCountryCode}`;
+
+        let resp = await fetch(url);
+        let results = await resp.json();
+
+        if (!results || results.length === 0) {
+            // Widen: same country, no viewbox restriction
+            let url2 = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1`;
+            if (userCountryCode) url2 += `&countrycodes=${userCountryCode}`;
+            resp = await fetch(url2);
+            results = await resp.json();
+        }
+
+        if (!results || results.length === 0) {
+            // Last resort: global search
+            resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6&addressdetails=1`);
+            results = await resp.json();
+        }
+
+        // Sort by proximity to the user's anchor position
+        results.forEach(r => { r._distKm = haversineKm(anchorLat, anchorLng, parseFloat(r.lat), parseFloat(r.lon)); });
+        results.sort((a, b2) => a._distKm - b2._distKm);
+
+        renderSearchResults(results);
+    } catch (e) {
+        // Network unavailable — fail quietly, results area just stays empty
+    }
+}
+
+function renderSearchResults(results) {
+    const container = document.getElementById('searchResults');
+    container.innerHTML = '';
+    if (!results || results.length === 0) {
+        container.innerHTML = '<div class="search-result-item">No results found</div>';
+        container.style.display = 'block';
+        return;
+    }
+    results.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+        const distTxt = r._distKm !== undefined ? `${formatDistanceMeters(r._distKm * 1000)} away` : '';
+        item.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${r.display_name.substring(0, 55)}${r.display_name.length > 55 ? '...' : ''}${distTxt ? `<small>${distTxt}</small>` : ''}`;
+        item.onclick = () => {
+            map.setView([r.lat, r.lon], 16);
+            const marker = L.marker([r.lat, r.lon], { icon: makeIcon('📍', 26, '#4361ee') }).addTo(map);
+            marker.bindPopup(`<b>${r.display_name.substring(0, 50)}</b><br><button class="popup-btn navigate" onclick="routeToPoint(${r.lat},${r.lon})">Navigate</button>`).openPopup();
+            container.style.display = 'none';
+            fetchWeather(r.lat, r.lon);
+        };
+        container.appendChild(item);
+    });
+    container.style.display = 'block';
+}
+
+function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchResults').style.display = 'none';
+}
+
+async function detectUserCountry(lat, lng) {
+    try {
+        const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=3`);
+        const data = await resp.json();
+        if (data?.address?.country_code) userCountryCode = data.address.country_code;
+    } catch (e) { /* country detection unavailable — search just won't be country-biased */ }
+}
+
+// ===================== NEARBY PLACES (category modal, proper bounds/popups) =====================
+async function findNearbyPlaces(category) {
+    if (!category) return;
+    const originPos = lastPos || (userMarker ? [userMarker.getLatLng().lat, userMarker.getLatLng().lng] : null);
+    if (!originPos) { showToast("Start walking or locate yourself to find nearby places", "warning"); return; }
+
+    nearbyMarkers.forEach(m => map.removeLayer(m));
+    nearbyMarkers = [];
+
+    showToast(`Searching for nearby ${category.label}...`, 'info');
+    const radius = 1500;
+    const key = category.osmKey || 'amenity';
+    const value = category.osmValue || category.type;
+    const query = `[out:json][timeout:25];(node(around:${radius},${originPos[0]},${originPos[1]})["${key}"="${value}"];way(around:${radius},${originPos[0]},${originPos[1]})["${key}"="${value}"];);out center;`;
+
+    try {
+        const resp = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+        const data = await resp.json();
+        if (data.elements?.length) {
+            const bounds = [];
+            data.elements.slice(0, 25).forEach(el => {
+                const lat = el.lat || el.center?.lat, lon = el.lon || el.center?.lon;
+                if (lat === undefined || lon === undefined) return;
+                const name = el.tags?.name || category.label;
+                const marker = L.marker([lat, lon], { icon: makeIcon(category.emoji, 22, '#f4a261') }).addTo(map);
+                marker.bindPopup(`<b>${name}</b><br><small>${category.label}</small><br><button class="popup-btn navigate" onclick="routeToPoint(${lat},${lon})">Navigate</button>`);
+                nearbyMarkers.push(marker);
+                bounds.push([lat, lon]);
+            });
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [60, 60] });
+                showToast(`Found ${bounds.length} nearby ${category.label.toLowerCase()}`, 'success');
+            } else {
+                showToast("No nearby places found", "warning");
+            }
+        } else {
+            showToast("No nearby places found", "warning");
+        }
+    } catch (e) {
+        showToast("Failed to search nearby places", 'danger');
+    }
+}
+
+// ===================== WEATHER =====================
+let lastWeatherLatLng = null;
+async function fetchWeather(lat, lng, isRetry = false) {
+    lastWeatherLatLng = [lat, lng];
+    if (!isRetry) {
+        document.getElementById('weatherWidget').innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:0.8em"></i> Loading...';
+    }
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const resp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&temperature_unit=fahrenheit`, { signal: controller.signal });
+        clearTimeout(timeout);
+        const data = await resp.json();
+        if (data.current_weather) {
+            weatherData = data.current_weather;
+            updateWeatherDisplay();
+        } else {
+            throw new Error('No weather data in response');
+        }
+    } catch (e) {
+        // Network unavailable (e.g. sandboxed preview) — fail quietly, no console warning
+        if (!isRetry) {
+            // one automatic retry after a short delay in case of a transient network hiccup
+            setTimeout(() => fetchWeather(lat, lng, true), 2000);
+        } else {
+            document.getElementById('weatherWidget').innerHTML = '<i class="fas fa-cloud" style="opacity:0.5"></i> Offline';
+            document.getElementById('weatherWidget').title = 'Weather unavailable — open this file in a regular browser tab with internet access';
+        }
+    }
+}
+function retryWeatherIfNeeded() {
+    if (!weatherData && lastWeatherLatLng) {
+        fetchWeather(lastWeatherLatLng[0], lastWeatherLatLng[1]);
+    } else {
+        toggleTempUnit();
+    }
+}
+
+function updateWeatherDisplay() {
+    if (!weatherData) return;
+    const temp = weatherData.temperature;
+    const code = weatherData.weathercode;
+    const icon = weatherCodeToIcon(code);
+    const unit = tempUnit === 'F' ? '°F' : '°C';
+    const displayTemp = tempUnit === 'F' ? Math.round(temp) : Math.round((temp - 32) * 5 / 9);
+    document.getElementById('weatherWidget').innerHTML = `${icon} ${displayTemp}${unit}`;
+}
+
+function weatherCodeToIcon(code) {
+    if (code === 0) return '<i class="fas fa-sun" style="color:#f4a261"></i>';
+    if (code <= 3) return '<i class="fas fa-cloud-sun" style="color:#8899aa"></i>';
+    if (code <= 49) return '<i class="fas fa-smog" style="color:#8899aa"></i>';
+    if (code <= 59) return '<i class="fas fa-cloud-rain" style="color:#4361ee"></i>';
+    if (code <= 69) return '<i class="fas fa-cloud-showers-heavy" style="color:#4361ee"></i>';
+    if (code <= 79) return '<i class="fas fa-snowflake" style="color:#9b5de5"></i>';
+    if (code <= 84) return '<i class="fas fa-cloud-rain" style="color:#4361ee"></i>';
+    if (code <= 86) return '<i class="fas fa-snowflake" style="color:#9b5de5"></i>';
+    if (code <= 99) return '<i class="fas fa-bolt" style="color:#ef476f"></i>';
+    return '<i class="fas fa-cloud" style="color:#8899aa"></i>';
+}
+
+function toggleTempUnit() {
+    tempUnit = tempUnit === 'F' ? 'C' : 'F';
+    updateWeatherDisplay();
+    showToast(`Temperature unit: ${tempUnit === 'F' ? 'Fahrenheit' : 'Celsius'}`, 'info');
+}
+
+// ===================== DARK MODE =====================
+function toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    document.body.classList.toggle('dark-mode', isDarkMode);
+    document.getElementById('darkModeIcon').className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
+
+    const mapStyleSelect = document.getElementById('mapStyle');
+    if (isDarkMode) {
+        if (mapStyleSelect.value === 'streets' || mapStyleSelect.value === 'topo') {
+            mapStyleSelect.value = 'dark';
+            changeMapStyle();
+        }
+    } else {
+        if (mapStyleSelect.value === 'dark') {
+            mapStyleSelect.value = 'streets';
+            changeMapStyle();
+        }
+    }
+    saveToStorage();
+}
+
+function checkAutoTheme() {
+    if (!isAutoTheme) return;
+    const hour = new Date().getHours();
+    const shouldDark = hour < 6 || hour >= 19;
+    if (shouldDark !== isDarkMode) toggleDarkMode();
+}
+
+// ===================== COMPASS =====================
+function resetNorth() {
+    compassHeading = 0;
+    document.getElementById('compassNeedle').style.transform = 'rotate(0deg)';
+    map.setView(map.getCenter(), map.getZoom(), { animate: true });
+    showToast("Map aligned to North", "info");
+}
+
+if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', (e) => {
+        if (e.webkitCompassHeading) {
+            compassHeading = e.webkitCompassHeading;
+        } else if (e.alpha) {
+            compassHeading = 360 - e.alpha;
+        }
+        const needle = document.getElementById('compassNeedle');
+        // Only the compass needle rotates to indicate heading — the map itself
+        // never rotates, staying permanently aligned to North.
+        if (needle) needle.style.transform = `rotate(${-compassHeading}deg)`;
+    });
+}
+
+// ===================== SOS =====================
+function triggerSOS() {
+    const lat = lastPos ? lastPos[0].toFixed(6) : 'unknown';
+    const lng = lastPos ? lastPos[1].toFixed(6) : 'unknown';
+    const msg = `🚨 EMERGENCY! I need help! My location: https://maps.google.com/?q=${lat},${lng}`;
+    if (confirm(`SOS Alert!\n\nSend emergency message with your location?\n\nLat: ${lat}, Lng: ${lng}`)) {
+        if (navigator.share) {
+            navigator.share({ title: 'SOS Emergency', text: msg }).catch(() => {});
+        } else {
+            navigator.clipboard.writeText(msg).then(() => showToast("Emergency location copied!", "danger"));
+        }
+        sendNotification("SOS Sent", "Emergency location shared with contacts.");
+        showToast("SOS sent! Call emergency services if needed.", "danger");
+    }
+}
+
+// ===================== SHARE =====================
+function shareLocation() {
+    if (!lastPos) return showToast("Start walking to share location", "warning");
+    const url = `https://maps.google.com/?q=${lastPos[0].toFixed(6)},${lastPos[1].toFixed(6)}`;
+    if (navigator.share) {
+        navigator.share({ title: 'My Walk Location', text: `Track my walk!`, url }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(url).then(() => showToast("Location link copied!", "success"));
+    }
+}
+
+// ===================== MAP SCREENSHOT =====================
+async function captureMap() {
+    showToast("Capturing map...", "info");
+    try {
+        const canvas = await html2canvas(document.getElementById('map'), { useCORS: true, allowTaint: true });
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], 'walk-tracker-map.png', { type: 'image/png' });
+            if (navigator.share && navigator.canShare?.({ files: [file] })) {
+                await navigator.share({ title: 'My Walk Map', files: [file] });
+            } else {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'walk-tracker-map.png'; a.click();
+                showToast("Map screenshot saved", "success");
+            }
+        });
+    } catch (e) {
+        showToast("Screenshot failed: " + e.message, "danger");
+    }
+}
+
+// ===================== LOCATE ME / RE-CENTER (always fetches a fresh GPS fix) =====================
+function locateMe() {
+    showToast("Finding your location...", "info");
+    navigator.geolocation.getCurrentPosition(pos => {
+        const c = [pos.coords.latitude, pos.coords.longitude];
+        gpsAccuracy = pos.coords.accuracy;
+        updateGpsWidget();
+
+        if (userMarker) map.removeLayer(userMarker);
+        userMarker = L.marker(c, { icon: createUserMarkerIcon(), zIndexOffset: 1000 }).addTo(map);
+
+        // Keep lastPos in sync so navigation/nearby/ETA features use the fresh fix
+        // even if a walk hasn't been started yet.
+        if (!watchId) lastPos = c;
+
+        map.setView(c, 17, { animate: true });
+        showToast("Centered on your location", "success");
+    }, err => {
+        showToast("Cannot get location: " + err.message, "danger");
+    }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+}
+
+// ===================== RESET =====================
+function confirmReset() {
+    if (confirm("Reset trip? This clears your current walk path, active route and route history. Saved locations, friend houses, and friends will be kept.")) {
+        maybeShowTripSummary(() => resetTrip());
+    }
+}
+
+function resetTrip() {
+    if (watchId) navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+    startBtn.innerHTML = '<i class="fas fa-play"></i> Start Walk';
+    startBtn.classList.remove('recording');
+    resetTimer();
+
+    if (currentRecording && currentRecording.path.length > 1) {
+        currentRecording.endTime = Date.now();
+        currentRecording.duration = elapsedSeconds;
+        currentRecording.distance = totalDistance;
+        routeRecordings.unshift(currentRecording);
+        if (routeRecordings.length > 20) routeRecordings.pop();
+    }
+    currentRecording = null;
+
+    // Clear only trip-specific state: walk path, current route, and route history.
+    walkPath = [];
+    totalDistance = 0; stepCount = 0; currentSpeed = 0;
+    lastPos = null; lastTimestamp = 0; startTime = null;
+    lastElevation = null; elevationGain = 0; lastMilestone = 0;
+    isStepInProgress = false;
+    routeHistory = [];
+
+    walkPolyline.setLatLngs([]);
+
+    if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+    if (homeMarker) { map.removeLayer(homeMarker); homeMarker = null; }
+
+    waypoints.forEach(w => map.removeLayer(w.marker));
+    waypoints = [];
+
+    nearbyMarkers.forEach(m => map.removeLayer(m));
+    nearbyMarkers = [];
+
+    // Saved locations, friend houses, walking friends and favorites are
+    // intentionally left untouched here.
+    cancelActiveRoute();
+
+    document.getElementById('stepsCount').textContent = '0';
+    document.getElementById('distanceCount').textContent = '0.00';
+    document.getElementById('speedCount').textContent = '0.0';
+    document.getElementById('paceCount').textContent = '--:--';
+    document.getElementById('calorieCount').textContent = '0';
+    document.getElementById('durationCount').textContent = '00:00';
+    document.getElementById('elevationCount').textContent = '--';
+    document.getElementById('startTimeTxt').textContent = '--:--';
+    document.getElementById('etaHomeTxt').textContent = '--:--';
+    document.getElementById('speedIndicator').style.display = 'none';
+
+    showToast("Trip reset! Saved markers kept.", "success");
+    saveToStorage();
+    refreshSidePanel();
+}
+
+// ===================== SIDE PANEL =====================
+function toggleSidePanel() {
+    document.getElementById('sidePanel').classList.toggle('open');
+    refreshSidePanel();
+}
+
+function switchTab(tab, ev) {
+    sidePanelTab = tab;
+    document.querySelectorAll('.side-tab').forEach(t => t.classList.remove('active'));
+    if (ev) ev.target.classList.add('active');
+    refreshSidePanel();
+}
+
+function refreshSidePanel() {
+    const content = document.getElementById('sidePanelContent');
+    content.innerHTML = '';
+
+    if (sidePanelTab === 'locations') {
+        if (customLocations.length === 0 && friendHouses.length === 0 && walkingFriends.length === 0) {
+            content.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:0.8em">No saved locations yet. Use map buttons to add.</div>';
+        } else {
+            customLocations.forEach((c, i) => {
+                const item = document.createElement('div');
+                item.className = 'saved-item';
+                item.innerHTML = `<span class="icon">${c.emoji || '📌'}</span><div class="info">${c.name}<small>${c.latlng.lat.toFixed(4)}, ${c.latlng.lng.toFixed(4)}</small></div><span class="del" onclick="event.stopPropagation();removeCustomLocByIndex(${i})"><i class="fas fa-trash"></i></span>`;
+                item.onclick = () => map.setView(c.latlng, 16);
+                content.appendChild(item);
+            });
+            friendHouses.forEach((f, i) => {
+                const item = document.createElement('div');
+                item.className = 'saved-item';
+                item.innerHTML = `<span class="icon">🏡</span><div class="info">${f.name}<small>Friend's House</small></div><span class="del" onclick="event.stopPropagation();removeFriendHouseByIndex(${i})"><i class="fas fa-trash"></i></span>`;
+                item.onclick = () => map.setView(f.latlng, 16);
+                content.appendChild(item);
+            });
+            walkingFriends.forEach((f, i) => {
+                const item = document.createElement('div');
+                item.className = 'saved-item';
+                item.innerHTML = `<span class="icon">🏃</span><div class="info">${f.name}<small>Walking Friend</small></div><span class="del" onclick="event.stopPropagation();removeWalkingFriendByIndex(${i})"><i class="fas fa-trash"></i></span>`;
+                item.onclick = () => map.setView(f.latlng, 16);
+                content.appendChild(item);
+            });
+        }
+
+        const exportBtn = document.createElement('button');
+        exportBtn.className = 'btn-confirm';
+        exportBtn.style.cssText = 'width:100%;margin-top:10px;padding:8px;border:none;border-radius:8px;font-weight:700;cursor:pointer;color:white;background:var(--primary);';
+        exportBtn.innerHTML = '<i class="fas fa-download"></i> Export Locations';
+        exportBtn.onclick = exportLocations;
+        content.appendChild(exportBtn);
+
+        const importBtn = document.createElement('button');
+        importBtn.className = 'btn-cancel';
+        importBtn.style.cssText = 'width:100%;margin-top:6px;padding:8px;border:none;border-radius:8px;font-weight:700;cursor:pointer;background:var(--light);color:var(--text);';
+        importBtn.innerHTML = '<i class="fas fa-upload"></i> Import Locations';
+        importBtn.onclick = importLocations;
+        content.appendChild(importBtn);
+
+        const voiceDiv = document.createElement('div');
+        voiceDiv.style.cssText = 'margin-top:10px;';
+        voiceDiv.innerHTML = '<label style="font-size:0.7em;font-weight:700;color:var(--muted)">Voice Language</label>';
+        const voiceSelect = document.createElement('select');
+        voiceSelect.style.cssText = 'width:100%;padding:6px;margin-top:4px;border:1px solid var(--border);border-radius:6px;background:var(--light);color:var(--text);';
+        availableVoices.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v.lang;
+            opt.textContent = `${v.name} (${v.lang})`;
+            if (v.lang === selectedVoiceLang) opt.selected = true;
+            voiceSelect.appendChild(opt);
+        });
+        voiceSelect.onchange = (e) => {
+            selectedVoiceLang = e.target.value;
+            showToast(`Voice language: ${e.target.value}`, 'info');
+            saveToStorage();
+        };
+        voiceDiv.appendChild(voiceSelect);
+        content.appendChild(voiceDiv);
+
+        const themeDiv = document.createElement('div');
+        themeDiv.style.cssText = 'margin-top:10px;display:flex;align-items:center;gap:8px;font-size:0.8em;font-weight:600;';
+        themeDiv.innerHTML = `<input type="checkbox" id="autoTheme" ${isAutoTheme ? 'checked' : ''}><label for="autoTheme">Auto Day/Night Theme</label>`;
+        themeDiv.querySelector('input').onchange = (e) => {
+            isAutoTheme = e.target.checked;
+            if (isAutoTheme) checkAutoTheme();
+            saveToStorage();
+        };
+        content.appendChild(themeDiv);
+
+        const cacheDiv = document.createElement('div');
+        cacheDiv.style.cssText = 'margin-top:6px;display:flex;align-items:center;gap:8px;font-size:0.8em;font-weight:600;';
+        cacheDiv.innerHTML = `<input type="checkbox" id="offlineCache" ${Object.keys(offlineCache).length > 0 ? 'checked' : ''}><label for="offlineCache">Offline Map Cache</label>`;
+        cacheDiv.querySelector('input').onchange = (e) => {
+            if (e.target.checked) {
+                offlineCache.enabled = true;
+                showToast("Offline cache enabled. Tiles will be cached.", "info");
+            } else {
+                offlineCache = {};
+                showToast("Offline cache cleared", "warning");
+            }
+            saveToStorage();
+        };
+        content.appendChild(cacheDiv);
+    }
+    else if (sidePanelTab === 'favorites') {
+        if (favoritePlaces.length === 0) {
+            content.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:0.8em">No favorites yet. Click ★ on a location.</div>';
+        } else {
+            favoritePlaces.forEach((f, i) => {
+                const item = document.createElement('div');
+                item.className = 'saved-item';
+                item.innerHTML = `<span class="icon">${f.emoji || '⭐'}</span><div class="info">${f.name}<small>${f.lat.toFixed(4)}, ${f.lng.toFixed(4)}</small></div><span class="del" onclick="event.stopPropagation();removeFavorite(${i})"><i class="fas fa-trash"></i></span>`;
+                item.onclick = () => { map.setView([f.lat, f.lng], 16); routeToPoint(f.lat, f.lng); };
+                content.appendChild(item);
+            });
+        }
+    }
+    else if (sidePanelTab === 'history') {
+        if (routeHistory.length === 0) {
+            content.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:0.8em">No routes yet. Navigate somewhere!</div>';
+        } else {
+            routeHistory.forEach((h, i) => {
+                const item = document.createElement('div');
+                item.className = 'saved-item';
+                const date = new Date(h.date).toLocaleString();
+                item.innerHTML = `<span class="icon">🛣️</span><div class="info">${h.mode} Route<small>${date} · ${(h.distance/1000).toFixed(1)}km · ${formatDuration(h.duration)}</small></div>`;
+                item.onclick = () => calculateAndShowRoute(h.from, h.to, true);
+                content.appendChild(item);
+            });
+        }
+    }
+    else if (sidePanelTab === 'recordings') {
+        const gpxBtn = document.createElement('button');
+        gpxBtn.className = 'btn-confirm';
+        gpxBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px;border:none;border-radius:8px;font-weight:700;cursor:pointer;color:white;background:var(--primary);';
+        gpxBtn.innerHTML = '<i class="fas fa-file-export"></i> Export Current Walk (GPX)';
+        gpxBtn.onclick = exportCurrentWalkGPX;
+        content.appendChild(gpxBtn);
+
+        if (routeRecordings.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.cssText = 'padding:20px;text-align:center;color:var(--muted);font-size:0.8em';
+            empty.textContent = 'No recordings yet. Walk and reset to save.';
+            content.appendChild(empty);
+        } else {
+            routeRecordings.forEach((r, i) => {
+                const item = document.createElement('div');
+                item.className = 'saved-item';
+                const date = new Date(r.startTime).toLocaleString();
+                item.innerHTML = `<span class="icon">▶️</span><div class="info">${r.name}<small>${date} · ${r.path.length} points</small></div><span class="del" title="Export GPX" onclick="event.stopPropagation();exportRecordingGPX(${i})"><i class="fas fa-file-export"></i></span><span class="del" onclick="event.stopPropagation();removeRecording(${i})"><i class="fas fa-trash"></i></span>`;
+                item.onclick = () => playbackRecording(i);
+                content.appendChild(item);
+            });
+        }
+    }
+    else if (sidePanelTab === 'stats') {
+        const km = allTimeStats.totalDistance / 1000;
+        const distTxt = distanceUnit === 'mi' ? (km * KM_TO_MI).toFixed(1) + ' mi' : km.toFixed(1) + ' km';
+        const weekTxt = distanceUnit === 'mi' ? ((allTimeStats.weekDistance/1000) * KM_TO_MI).toFixed(1) + ' mi' : (allTimeStats.weekDistance/1000).toFixed(1) + ' km';
+        const longestTxt = formatDistanceMeters(allTimeStats.longestWalk);
+        content.innerHTML = `
+            <div class="stats-card"><div class="label">All-Time Distance</div><div class="value">${distTxt}</div></div>
+            <div class="stats-row">
+                <div class="stats-card"><div class="label">Total Walks</div><div class="value">${allTimeStats.totalWalks}</div></div>
+                <div class="stats-card"><div class="label">This Week</div><div class="value">${weekTxt}</div></div>
+            </div>
+            <div class="stats-row">
+                <div class="stats-card"><div class="label">Total Steps</div><div class="value">${allTimeStats.totalSteps}</div></div>
+                <div class="stats-card"><div class="label">Total Calories</div><div class="value">${allTimeStats.totalCalories}</div></div>
+            </div>
+            <div class="stats-card"><div class="label">Longest Walk</div><div class="value">${longestTxt}</div></div>
+        `;
+    }
+}
+
+window.removeCustomLocByIndex = function(i) {
+    map.removeLayer(customLocations[i].marker);
+    customLocations.splice(i, 1);
+    saveToStorage();
+    refreshSidePanel();
+};
+window.removeFriendHouseByIndex = function(i) {
+    map.removeLayer(friendHouses[i].marker);
+    friendHouses.splice(i, 1);
+    saveToStorage();
+    refreshSidePanel();
+};
+window.removeWalkingFriendByIndex = function(i) {
+    map.removeLayer(walkingFriends[i].marker);
+    walkingFriends.splice(i, 1);
+    saveToStorage();
+    refreshSidePanel();
+};
+window.removeFavorite = function(i) {
+    favoritePlaces.splice(i, 1);
+    saveToStorage();
+    refreshSidePanel();
+};
+window.removeRecording = function(i) {
+    routeRecordings.splice(i, 1);
+    saveToStorage();
+    refreshSidePanel();
+};
+
+// ===================== ROUTE RECORDING PLAYBACK =====================
+function playbackRecording(index) {
+    const rec = routeRecordings[index];
+    if (!rec || isPlayingRecording) return;
+    isPlayingRecording = true;
+    showToast(`Playing back recording: ${rec.name}`, 'info');
+
+    const playbackLine = L.polyline([], { color: '#9b5de5', weight: 5, dashArray: '' }).addTo(map);
+    const playbackMarker = L.marker(rec.path[0], { icon: createUserMarkerIcon() }).addTo(map);
+    let i = 0;
+
+    const interval = setInterval(() => {
+        if (i >= rec.path.length) {
+            clearInterval(interval);
+            isPlayingRecording = false;
+            showToast("Playback complete", "success");
+            setTimeout(() => {
+                map.removeLayer(playbackLine);
+                map.removeLayer(playbackMarker);
+            }, 3000);
+            return;
+        }
+        playbackLine.addLatLng(rec.path[i]);
+        playbackMarker.setLatLng(rec.path[i]);
+        map.panTo(rec.path[i]); // Panning is ok during playback
+        i++;
+    }, 200);
+}
+
+// ===================== GPX EXPORT =====================
+function generateGPX(points, name) {
+    const trkpts = points.map(p => `      <trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`).join('\n');
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Ultimate Walk Tracker Pro" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>${name}</name>
+    <trkseg>
+${trkpts}
+    </trkseg>
+  </trk>
+</gpx>`;
+}
+function exportGPX(points, name) {
+    if (!points || points.length === 0) { showToast("Nothing to export yet", "warning"); return; }
+    const gpx = generateGPX(points, name);
+    const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${name.replace(/[^a-z0-9]/gi, '_')}.gpx`; a.click();
+    showToast("GPX file exported", "success");
+}
+window.exportRecordingGPX = function(i) {
+    const rec = routeRecordings[i];
+    if (rec) exportGPX(rec.path, rec.name);
+};
+function exportCurrentWalkGPX() {
+    if (walkPath.length < 2) { showToast("Start walking to record a path first", "warning"); return; }
+    exportGPX(walkPath, `Walk ${new Date().toLocaleDateString()}`);
+}
+
+// ===================== ALL-TIME STATS =====================
+function getWeekStartISO() {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+    const monday = new Date(d.setDate(diff));
+    monday.setHours(0,0,0,0);
+    return monday.toISOString();
+}
+function updateAllTimeStats(distanceMeters, steps, calories) {
+    const weekStart = getWeekStartISO();
+    if (allTimeStats.weekStart !== weekStart) {
+        allTimeStats.weekStart = weekStart;
+        allTimeStats.weekDistance = 0;
+    }
+    allTimeStats.totalDistance += distanceMeters;
+    allTimeStats.totalSteps += steps;
+    allTimeStats.totalCalories += calories;
+    allTimeStats.totalWalks += 1;
+    allTimeStats.weekDistance += distanceMeters;
+    if (distanceMeters > allTimeStats.longestWalk) allTimeStats.longestWalk = distanceMeters;
+    saveToStorage();
+}
+
+// ===================== TRIP SUMMARY MODAL =====================
+function maybeShowTripSummary(onDone) {
+    if (totalDistance < 20) { onDone(); return; } // trivial walk, skip summary
+    const cal = Math.round(totalDistance * CALORIE_PER_METER_WALK);
+    const avgSpeed = elapsedSeconds > 0 ? (totalDistance / 1000) / (elapsedSeconds / 3600) : 0;
+    const grid = document.getElementById('summaryGrid');
+    grid.innerHTML = `
+        <div class="summary-item"><div class="big">${formatDistanceMeters(totalDistance)}</div><div class="sub">Distance</div></div>
+        <div class="summary-item"><div class="big">${formatDuration(elapsedSeconds)}</div><div class="sub">Duration</div></div>
+        <div class="summary-item"><div class="big">${cal}</div><div class="sub">Calories</div></div>
+        <div class="summary-item"><div class="big">${formatSpeedKmh(avgSpeed)}</div><div class="sub">Avg Speed</div></div>
+        <div class="summary-item"><div class="big">${stepCount}</div><div class="sub">Steps</div></div>
+        <div class="summary-item"><div class="big">${elevationGain ? Math.round(elevationGain) + ' m' : '--'}</div><div class="sub">Elevation Gain</div></div>
+    `;
+    updateAllTimeStats(totalDistance, stepCount, cal);
+    document.getElementById('summaryModal').classList.add('open');
+    pendingSummaryStats = onDone;
+}
+function dismissSummary(proceed) {
+    document.getElementById('summaryModal').classList.remove('open');
+    const cb = pendingSummaryStats;
+    pendingSummaryStats = null;
+    if (proceed && cb) cb();
+}
+
+// ===================== IMPORT / EXPORT =====================
+function exportLocations() {
+    const data = {
+        customLocations: customLocations.map(c => ({ name: c.name, lat: c.latlng.lat, lng: c.latlng.lng, emoji: c.emoji, color: c.color })),
+        friendHouses: friendHouses.map(f => ({ name: f.name, lat: f.latlng.lat, lng: f.latlng.lng, color: f.color })),
+        walkingFriends: walkingFriends.map(f => ({ name: f.name, lat: f.latlng.lat, lng: f.latlng.lng, color: f.color })),
+        favoritePlaces: favoritePlaces,
+        exportDate: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'walk-tracker-locations.json'; a.click();
+    showToast("Locations exported", "success");
+}
+
+function importLocations() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (data.customLocations) {
+                    data.customLocations.forEach(c => {
+                        const icon = makeIcon(c.emoji || '📌', 24, c.color || '#4361ee');
+                        const marker = L.marker([c.lat, c.lng], { icon }).addTo(map);
+                        marker.bindPopup(`<b>${c.name}</b>`);
+                        customLocations.push({ marker, name: c.name, latlng: { lat: c.lat, lng: c.lng }, emoji: c.emoji, color: c.color });
+                    });
+                }
+                if (data.friendHouses) {
+                    data.friendHouses.forEach(f => {
+                        const marker = L.marker([f.lat, f.lng], { icon: makeIcon('🏡', 28, f.color) }).addTo(map);
+                        marker.bindPopup(`<b>${f.name}'s House</b>`);
+                        friendHouses.push({ marker, name: f.name, latlng: { lat: f.lat, lng: f.lng }, color: f.color });
+                    });
+                }
+                if (data.walkingFriends) {
+                    data.walkingFriends.forEach(f => {
+                        const marker = L.marker([f.lat, f.lng], { icon: makeIcon('🏃', 26, f.color) }).addTo(map);
+                        marker.bindPopup(`<b>${f.name}</b>`);
+                        walkingFriends.push({ marker, name: f.name, latlng: { lat: f.lat, lng: f.lng }, color: f.color });
+                    });
+                }
+                if (data.favoritePlaces) {
+                    favoritePlaces.push(...data.favoritePlaces);
+                }
+                saveToStorage();
+                refreshSidePanel();
+                showToast("Locations imported successfully", "success");
+            } catch (err) {
+                showToast("Import failed: invalid file", "danger");
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+// ===================== NOTIFICATIONS =====================
+async function sendNotification(title, body) {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') {
+        new Notification(title, { body, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚶</text></svg>' });
+    } else if (Notification.permission !== 'denied') {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') new Notification(title, { body });
+    }
+}
+
+if ('Notification' in window && Notification.permission === 'default') {
+    setTimeout(() => Notification.requestPermission(), 5000);
+}
+
+// ===================== STORAGE =====================
+function saveToStorage() {
+    document.getElementById('saveDot').classList.add('saving');
+    try {
+        const data = {
+            customLocations: customLocations.map(c => ({ name: c.name, lat: c.latlng.lat, lng: c.latlng.lng, emoji: c.emoji, color: c.color })),
+            friendHouses: friendHouses.map(f => ({ name: f.name, lat: f.latlng.lat, lng: f.latlng.lng, color: f.color })),
+            walkingFriends: walkingFriends.map(f => ({ name: f.name, lat: f.latlng.lat, lng: f.latlng.lng, color: f.color })),
+            favoritePlaces: favoritePlaces,
+            routeHistory: routeHistory.slice(0, 20),
+            routeRecordings: routeRecordings.slice(0, 10).map(r => ({ name: r.name, path: r.path, startTime: r.startTime, duration: r.duration, distance: r.distance })),
+            isDarkMode, isAutoTheme, tempUnit, selectedVoiceLang, selectedEmoji, selectedColor,
+            offlineCache: { enabled: !!offlineCache.enabled },
+            distanceUnit, voiceEnabled, allTimeStats
+        };
+        localStorage.setItem('walkTrackerProData', JSON.stringify(data));
+    } catch (e) {
+        // localStorage unavailable (e.g. private browsing) — auto-save just won't persist
+    }
+    setTimeout(() => document.getElementById('saveDot').classList.remove('saving'), 500);
+}
+
+function loadFromStorage() {
+    try {
+        const raw = localStorage.getItem('walkTrackerProData');
+        if (!raw) return;
+        const data = JSON.parse(raw);
+
+        if (data.customLocations) {
+            data.customLocations.forEach(c => {
+                const icon = makeIcon(c.emoji || '📌', 24, c.color || '#4361ee');
+                const marker = L.marker([c.lat, c.lng], { icon }).addTo(map);
+                marker.bindPopup(`<b>${c.name}</b><br><button class="popup-btn navigate" onclick="routeToPoint(${c.lat},${c.lng})">Navigate</button><button class="popup-btn fav" onclick="addToFavorites('${c.name}',${c.lat},${c.lng},'${c.emoji}','${c.color}')">★ Favorite</button><button class="popup-btn" onclick="removeCustomLoc(this)">Remove</button>`);
+                customLocations.push({ marker, name: c.name, latlng: { lat: c.lat, lng: c.lng }, emoji: c.emoji, color: c.color });
+            });
+        }
+        if (data.friendHouses) {
+            data.friendHouses.forEach(f => {
+                const marker = L.marker([f.lat, f.lng], { icon: makeIcon('🏡', 28, f.color || '#9b5de5') }).addTo(map);
+                marker.bindPopup(`<b>${f.name}'s House</b><br><button class="popup-btn navigate" onclick="routeToPoint(${f.lat},${f.lng})">Navigate</button><button class="popup-btn" onclick="removeFriendHouse(${f.lat},${f.lng})">Remove</button>`);
+                friendHouses.push({ marker, name: f.name, latlng: { lat: f.lat, lng: f.lng }, color: f.color });
+            });
+        }
+        if (data.walkingFriends) {
+            data.walkingFriends.forEach(f => {
+                const marker = L.marker([f.lat, f.lng], { icon: makeIcon('🏃', 26, f.color || '#06d6a0') }).addTo(map);
+                marker.bindPopup(`<b>${f.name}</b><br><button class="popup-btn" onclick="removeWalkingFriend(${f.lat},${f.lng})">Remove</button>`);
+                walkingFriends.push({ marker, name: f.name, latlng: { lat: f.lat, lng: f.lng }, color: f.color });
+            });
+        }
+        if (data.favoritePlaces) favoritePlaces = data.favoritePlaces;
+        if (data.routeHistory) routeHistory = data.routeHistory;
+        if (data.routeRecordings) routeRecordings = data.routeRecordings;
+
+        if (data.isDarkMode) toggleDarkMode();
+        isAutoTheme = data.isAutoTheme || false;
+        if (data.tempUnit) tempUnit = data.tempUnit;
+        if (data.selectedVoiceLang) selectedVoiceLang = data.selectedVoiceLang;
+        if (data.selectedEmoji) selectedEmoji = data.selectedEmoji;
+        if (data.selectedColor) selectedColor = data.selectedColor;
+        if (data.offlineCache?.enabled) offlineCache = { enabled: true };
+        if (data.distanceUnit) { distanceUnit = data.distanceUnit; document.getElementById('unitToggle').textContent = distanceUnit.toUpperCase(); }
+        if (typeof data.voiceEnabled === 'boolean') {
+            voiceEnabled = data.voiceEnabled;
+            document.getElementById('voiceToggleIcon').className = voiceEnabled ? 'fas fa-volume-high' : 'fas fa-volume-xmark';
+        }
+        if (data.allTimeStats) allTimeStats = { ...allTimeStats, ...data.allTimeStats };
+    } catch (e) {
+        // no saved data yet, or it's corrupted — start fresh
+    }
+}
+
+// ===================== LOAD VOICES =====================
+function loadVoices() {
+    availableVoices = speechSynthesis.getVoices() || [];
+    if (availableVoices.length === 0) {
+        availableVoices = [
+            { lang: 'en-US', name: 'English (US)' },
+            { lang: 'en-GB', name: 'English (UK)' },
+            { lang: 'es-ES', name: 'Spanish' },
+            { lang: 'fr-FR', name: 'French' },
+            { lang: 'de-DE', name: 'German' },
+            { lang: 'hi-IN', name: 'Hindi' },
+            { lang: 'zh-CN', name: 'Chinese' },
+            { lang: 'ja-JP', name: 'Japanese' },
+            { lang: 'ar-SA', name: 'Arabic' },
+            { lang: 'pt-BR', name: 'Portuguese' }
+        ];
+    }
+}
+if ('speechSynthesis' in window) {
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+// ===================== INIT =====================
+loadFromStorage();
+
+navigator.geolocation.getCurrentPosition(pos => {
+    const c = [pos.coords.latitude, pos.coords.longitude];
+    gpsAccuracy = pos.coords.accuracy;
+    updateGpsWidget();
+    map.setView(c, 15);
+    fetchWeather(c[0], c[1]);
+    detectUserCountry(c[0], c[1]);
+}, err => {
+    fetchWeather(40.7128, -74.0060);
+}, { enableHighAccuracy: true });
+
+setInterval(checkAutoTheme, 600000);
+setInterval(saveToStorage, SAVE_INTERVAL);
+setInterval(() => {
+    if (lastPos) fetchWeather(lastPos[0], lastPos[1]);
+}, 600000);
+
+window.addEventListener('beforeunload', (e) => {
+    if (watchId) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+    saveToStorage();
+});
+
+buildRouteModeSelector();
+
+setTimeout(() => showToast("Welcome! Press Start Walk to begin.", "info"), 1000);
+</script>
+</body>
+</html>
