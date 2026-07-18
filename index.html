@@ -21,15 +21,6 @@
             --text-muted: #888888;
         }
 
-        body.dark-mode {
-            --dark: #0f1c24;
-            --light: #1d2b36;
-            --card-bg: #243440;
-            --text-main: #f8f9fa;
-            --text-muted: #a0aab5;
-            background: #0f1c24;
-        }
-
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body { 
@@ -41,7 +32,6 @@
             flex-direction: column;
             overflow: hidden;
             color: var(--text-main);
-            transition: background 0.3s, color 0.3s;
         }
 
         #header {
@@ -90,7 +80,6 @@
             z-index: 1000;
             border-bottom: 1px solid rgba(0,0,0,0.05);
             flex-shrink: 0;
-            transition: background 0.3s;
         }
         .stat-box { text-align: center; flex: 1; position: relative; }
         .stat-box:not(:last-child)::after { content: ''; position: absolute; right: 0; top: 20%; height: 60%; width: 1px; background: rgba(0,0,0,0.1); }
@@ -103,11 +92,9 @@
             z-index: 1;
             position: relative;
             background: #ddd;
+            overflow: hidden;
         }
 
-        body.dark-mode .leaflet-tile { filter: brightness(0.8) contrast(1.2); }
-        body.dark-mode .leaflet-popup-content-wrapper, body.dark-mode .leaflet-popup-tip { background: var(--card-bg); color: var(--text-main); }
-        body.dark-mode .leaflet-bar a { background: var(--card-bg); color: var(--text-main); border-color: var(--dark); }
         .leaflet-control-attribution { display: none !important; }
 
         .map-controls-wrapper {
@@ -173,17 +160,15 @@
         #startBtn { background: var(--primary); flex: 2; }
         #startBtn.recording { background: var(--danger); animation: pulse 2s infinite; }
         #homeBtn { background: var(--dark); flex: 1.5; }
-        #shareBtn { background: var(--light); color: var(--dark); flex: 0.5; font-size: 1.2em; padding: 0; }
         #navBtn { background: var(--success); flex: 1.2; }
-        body.dark-mode #shareBtn { background: #2a3b47; color: #fff; }
+        #shareBtn { background: var(--light); color: var(--dark); flex: 0.5; font-size: 1.2em; padding: 0; }
 
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 71, 111, 0.4); } 70% { box-shadow: 0 0 0 12px rgba(239, 71, 111, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 71, 111, 0); } }
         @keyframes pulse-sos { 0% { box-shadow: 0 0 0 0 rgba(239, 71, 111, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 71, 111, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 71, 111, 0); } }
 
-        .pulse-marker { border-radius: 50%; animation: pulse-gps 2s infinite; }
+        .pulse-marker { border-radius: 50%; }
         @keyframes pulse-gps { 0% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(67, 97, 238, 0); } 100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0); } }
 
-        /* Navigation Panel - Enhanced */
         #directionsPanel {
             position: absolute; top: 60px; right: 8px; left: 8px; max-width: 380px; margin: 0 auto;
             background: var(--card-bg); border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.25);
@@ -209,6 +194,7 @@
             background: var(--card-bg); border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             display: flex; align-items: center; justify-content: center; z-index: 1000;
             font-weight: 800; color: var(--danger); font-size: 1.1em;
+            cursor: pointer;
         }
         #compass i { transition: transform 0.2s; }
 
@@ -218,9 +204,6 @@
         }
         .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        .lang-select { background: rgba(255,255,255,0.1); color: white; border: none; padding: 4px; border-radius: 8px; font-family: 'Inter'; cursor: pointer; font-size: 0.85em;}
-        select option { color: black; }
 
         /* Settings Modal */
         .modal-overlay {
@@ -247,7 +230,6 @@
         .danger-btn { background: var(--danger); width: 100%; margin-top: 10px; }
         .info-box { background: rgba(67,97,238,0.08); padding: 10px; border-radius: 8px; font-size: 0.82em; color: var(--text-main); margin-top: 10px; }
 
-        /* Toast notification */
         #toast {
             position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
             background: var(--dark); color: white; padding: 10px 18px; border-radius: 24px;
@@ -256,8 +238,28 @@
         }
         #toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
 
-        .battery-saver-active { filter: saturate(0.7); }
-        .battery-saver-active #map { background: #bbb; }
+        /* User marker rotation */
+        .user-marker-icon {
+            transition: transform 0.3s ease-out;
+            transform-origin: center center;
+        }
+        .user-arrow {
+            width: 0; height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 22px solid #4361ee;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+            position: relative;
+        }
+        .user-arrow::after {
+            content: '';
+            position: absolute;
+            width: 14px; height: 14px;
+            background: #4361ee;
+            border: 3px solid white;
+            border-radius: 50%;
+            top: 18px; left: -7px;
+        }
 
         @media (max-width: 380px) {
             #dashboard .stat-box h3 { font-size: 1.3em; }
@@ -272,11 +274,6 @@
         <i class="fas fa-clock"></i> <span id="startTimeTxt">--:--</span> | <i class="fas fa-home"></i> <span id="etaHomeTxt">--:--</span>
     </div>
     <div style="display:flex; gap: 6px; align-items: center;">
-        <select id="langSelect" class="lang-select" onchange="changeLanguage()">
-            <option value="en">EN</option>
-            <option value="es">ES</option>
-            <option value="fr">FR</option>
-        </select>
         <div id="weatherWidget" class="header-item">🌤️ 72°F</div>
         <button id="sosBtn" onclick="triggerSOS()">SOS</button>
     </div>
@@ -289,7 +286,7 @@
     </div>
 </div>
 
-<div id="compass" title="Compass"><i class="fas fa-location-arrow" id="compassNeedle"></i></div>
+<div id="compass" title="Tap to rotate map with compass" onclick="toggleMapRotation()"><i class="fas fa-location-arrow" id="compassNeedle"></i></div>
 
 <div id="directionsPanel">
     <div class="dir-header">
@@ -307,7 +304,7 @@
 <div id="dashboard">
     <div class="stat-box">
         <h3 id="stepsCount">0</h3>
-        <p data-translate="steps">Steps</p>
+        <p>Steps</p>
     </div>
     <div class="stat-box">
         <h3 id="distanceCount">0.00</h3>
@@ -327,7 +324,6 @@
             <select id="mapStyle" onchange="changeMapStyle()">
                 <option value="streets">Standard</option>
                 <option value="satellite">Satellite</option>
-                <option value="dark">Dark Mode</option>
                 <option value="topo">Topographic</option>
             </select>
         </div>
@@ -356,7 +352,6 @@
     <button id="shareBtn" onclick="shareLocation()" title="Share Location"><i class="fas fa-share-alt"></i></button>
 </div>
 
-<!-- Settings Modal -->
 <div class="modal-overlay" id="settingsModal">
     <div class="modal">
         <div class="modal-header">
@@ -366,31 +361,11 @@
         <div class="modal-body">
             <div class="setting-row">
                 <div>
-                    <label>Battery Saver Mode</label>
-                    <small>Reduces GPS frequency & UI updates</small>
+                    <label>Auto-Rotate Map with Compass</label>
+                    <small>Map rotates to face your walking direction</small>
                 </div>
                 <label class="switch">
-                    <input type="checkbox" id="batterySaverToggle" onchange="toggleBatterySaver()">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div class="setting-row">
-                <div>
-                    <label>Dark Theme</label>
-                    <small>Use dark UI for night walking</small>
-                </div>
-                <label class="switch">
-                    <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div class="setting-row">
-                <div>
-                    <label>Voice Navigation</label>
-                    <small>Speak turn-by-turn directions</small>
-                </div>
-                <label class="switch">
-                    <input type="checkbox" id="voiceNavToggle" onchange="toggleVoiceNav()">
+                    <input type="checkbox" id="mapRotateToggle" onchange="toggleMapRotationSetting()">
                     <span class="slider"></span>
                 </label>
             </div>
@@ -414,10 +389,20 @@
                     <span class="slider"></span>
                 </label>
             </div>
-            <div class="info-box">
-                <i class="fas fa-info-circle"></i> All your data (home, waypoints, friends) is saved locally on this device. Use Export to back up.
+            <div class="setting-row">
+                <div>
+                    <label>Voice Navigation</label>
+                    <small>Speak turn-by-turn directions</small>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="voiceNavToggle" onchange="toggleVoiceNav()">
+                    <span class="slider"></span>
+                </label>
             </div>
-            <button class="danger-btn" onclick="clearAllData()"><i class="fas fa-trash"></i> Clear All Local Data</button>
+            <div class="info-box">
+                <i class="fas fa-info-circle"></i> Daily stats (steps, distance) reset automatically at 11:59:59 PM. Saved locations (home, waypoints, friends) are preserved.
+            </div>
+            <button class="danger-btn" onclick="clearAllData()"><i class="fas fa-trash"></i> Clear All Local Data (Keeps Route Map)</button>
         </div>
     </div>
 </div>
@@ -427,7 +412,8 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     // --- 0. STATE & LOCAL STORAGE ---
-    const STORAGE_KEY = 'walkTrackerProData_v2';
+    const STORAGE_KEY = 'walkTrackerProData_v3';
+    const DAILY_RESET_KEY = 'walkTrackerProLastReset';
     let appState = {
         home: null,
         favorites: [],
@@ -436,38 +422,87 @@
         walkingFriends: [],
         steps: 0,
         distance: 0,
+        walkPath: [],
         settings: { 
             mapStyle: 'streets', 
-            lang: 'en', 
-            darkMode: false,
-            batterySaver: false,
-            voiceNav: false,
             imperial: false,
-            autoCenter: true
+            autoCenter: true,
+            voiceNav: false,
+            mapRotate: false
         }
     };
 
     let lastSaveTime = 0;
-    const SAVE_INTERVAL = 8000; // Save at most every 8 seconds (battery optimization)
+    const SAVE_INTERVAL = 8000;
+
+    // Daily reset check (runs at 11:59:59 PM daily)
+    function checkDailyReset() {
+        const now = new Date();
+        const todayStr = now.toDateString();
+        const lastReset = localStorage.getItem(DAILY_RESET_KEY);
+        
+        // If never reset or last reset was a different day, schedule reset
+        if (lastReset !== todayStr) {
+            // Schedule for today's 11:59:59 PM
+            const midnight = new Date(now);
+            midnight.setHours(23, 59, 59, 0);
+            
+            // If we're already past midnight today (e.g., app opened after midnight)
+            if (now.getTime() > midnight.getTime()) {
+                performDailyReset();
+                return;
+            }
+            
+            const msToMidnight = midnight.getTime() - now.getTime();
+            setTimeout(() => {
+                performDailyReset();
+                // Schedule next day's check
+                setInterval(() => {
+                    const c = new Date();
+                    const m = new Date(c);
+                    m.setHours(23, 59, 59, 0);
+                    if (Math.abs(m.getTime() - c.getTime()) < 60000) {
+                        performDailyReset();
+                    }
+                }, 60000);
+            }, msToMidnight);
+        }
+    }
+
+    function performDailyReset() {
+        // Reset only daily stats - keep home, waypoints, friends, route map
+        appState.steps = 0;
+        appState.distance = 0;
+        // Keep walkPath/route preserved as requested
+        saveState(true);
+        localStorage.setItem(DAILY_RESET_KEY, new Date().toDateString());
+        showToast('Daily stats reset (route preserved)');
+        
+        // Update display
+        stepCount = 0;
+        totalDistance = 0;
+        document.getElementById('stepsCount').innerText = "0";
+        document.getElementById('distanceCount').innerText = "0.00";
+        document.getElementById('speedCount').innerText = "0.0";
+    }
 
     function loadState() {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                appState = { ...appState, ...parsed, settings: { ...appState.settings, ...(parsed.settings||{}) } };
+                appState = { 
+                    ...appState, 
+                    ...parsed, 
+                    settings: { ...appState.settings, ...(parsed.settings||{}) } 
+                };
             } catch(e) { console.error('Load error', e); }
         }
         document.getElementById('mapStyle').value = appState.settings.mapStyle;
-        document.getElementById('langSelect').value = appState.settings.lang;
-        document.getElementById('darkModeToggle').checked = appState.settings.darkMode;
-        document.getElementById('batterySaverToggle').checked = appState.settings.batterySaver;
-        document.getElementById('voiceNavToggle').checked = appState.settings.voiceNav;
         document.getElementById('imperialToggle').checked = appState.settings.imperial;
         document.getElementById('autoCenterToggle').checked = appState.settings.autoCenter;
-        
-        if (appState.settings.darkMode) document.body.classList.add('dark-mode');
-        if (appState.settings.batterySaver) document.body.classList.add('battery-saver-active');
+        document.getElementById('voiceNavToggle').checked = appState.settings.voiceNav;
+        document.getElementById('mapRotateToggle').checked = appState.settings.mapRotate;
         
         // Restore markers
         if (appState.home) {
@@ -476,15 +511,23 @@
         appState.customLocations.forEach(loc => 
             createMarker(loc.pos, '📌', `<b>${loc.name}</b><br><button onclick="removeCustomLoc('${loc.id}')" style="color:red; cursor:pointer; border:none; background:transparent; padding:4px;">Delete</button>`, loc.id)
         );
-        appState.favorites.forEach(loc => 
-            createMarker(loc.pos, '⭐', `<b>${loc.name}</b> (Favorite)`, loc.id)
-        );
         appState.friendHouses.forEach((fh, idx) => 
             createMarker(fh.pos, '🏡', `<b>Friend's House</b><br><button onclick="removeFriendHouse(${idx})" style="color:red; cursor:pointer; border:none; background:transparent; padding:4px;">Remove</button>`)
         );
         appState.walkingFriends.forEach(wf => 
             createMarker(wf.pos, '🏃', "<b>Walking Friend</b>")
         );
+        
+        // Restore walk path (route map preserved)
+        if (appState.walkPath && appState.walkPath.length > 0) {
+            walkPath = appState.walkPath;
+            walkPolyline.setLatLngs(walkPath);
+            if (walkPath.length > 0) {
+                const lastPoint = walkPath[walkPath.length - 1];
+                lastPos = lastPoint;
+                createUserMarker(lastPoint, 0);
+            }
+        }
         
         // Restore walk stats
         if (appState.distance) {
@@ -499,10 +542,11 @@
     }
 
     function saveState(force = false) {
-        // Throttle saves for battery optimization
         const now = Date.now();
         if (!force && now - lastSaveTime < SAVE_INTERVAL) return;
         lastSaveTime = now;
+        // Save walk path too for route preservation
+        appState.walkPath = walkPath;
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
         } catch(e) { console.error('Save error', e); }
@@ -513,7 +557,6 @@
         zoomControl: false, 
         doubleClickZoom: false, 
         attributionControl: false,
-        // Battery optimization: reduce update work
         preferCanvas: true,
         updateWhenZooming: false,
         keepBuffer: 2
@@ -531,21 +574,10 @@
 
         if (style === 'satellite') {
             currentLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
-        } else if (style === 'dark') {
-            currentLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 });
-            document.body.classList.add('dark-mode');
-            appState.settings.darkMode = true;
-            document.getElementById('darkModeToggle').checked = true;
         } else if (style === 'topo') {
             currentLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17 });
-            document.body.classList.remove('dark-mode');
-            appState.settings.darkMode = false;
-            document.getElementById('darkModeToggle').checked = false;
         } else {
             currentLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
-            document.body.classList.remove('dark-mode');
-            appState.settings.darkMode = false;
-            document.getElementById('darkModeToggle').checked = false;
         }
         
         currentLayer.addTo(map);
@@ -556,11 +588,15 @@
     let walkPath = [];
     let walkPolyline = L.polyline([], {color: '#4361ee', weight: 6, lineCap: 'round'}).addTo(map);
     let homePolyline = L.polyline([], {color: '#ef476f', weight: 5, dashArray: '5, 10'}).addTo(map);
+    let shortcutPolyline = L.polyline([], {color: '#06d6a0', weight: 4, dashArray: '8, 6'}).addTo(map);
     let friendHouseLine = L.polyline([], {color: '#9b5de5', weight: 3, dashArray: '2, 8'}).addTo(map);
     
     let watchId = null;
     let homeMarker = null;
     let userMarker = null;
+    let userHeading = 0;
+    let mapRotation = 0;
+    let mapRotateEnabled = false;
     let lastPos = null;
     let lastTimestamp = 0;
     let currentSpeed = 0;
@@ -572,21 +608,86 @@
     let currentRouteSteps = [];
     let currentStepIndex = 0;
     let isNavigating = false;
+    let showingShortcut = false;
+
+    // Calculate bearing between two coordinates
+    function calculateBearing(lat1, lng1, lat2, lng2) {
+        const toRad = (d) => d * Math.PI / 180;
+        const toDeg = (r) => r * 180 / Math.PI;
+        const dLng = toRad(lng2 - lng1);
+        const y = Math.sin(dLng) * Math.cos(toRad(lat2));
+        const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - 
+                  Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLng);
+        let bearing = toDeg(Math.atan2(y, x));
+        return (bearing + 360) % 360;
+    }
+
+    // Create user marker with rotation capability
+    function createUserMarker(coords, heading = 0) {
+        userHeading = heading;
+        if (userMarker) {
+            map.removeLayer(userMarker);
+        }
+        const icon = L.divIcon({
+            className: 'pulse-marker',
+            html: `<div class="user-marker-icon" id="userMarkerIcon" style="transform: rotate(${heading}deg);">
+                       <div class="user-arrow"></div>
+                   </div>`,
+            iconSize: [24, 40],
+            iconAnchor: [12, 20]
+        });
+        userMarker = L.marker(coords, {icon, zIndexOffset: 1000}).addTo(map);
+        return userMarker;
+    }
+
+    function updateUserMarkerHeading(heading) {
+        userHeading = heading;
+        const iconEl = document.getElementById('userMarkerIcon');
+        if (iconEl) {
+            iconEl.style.transform = `rotate(${heading}deg)`;
+        }
+        // If map rotation is enabled, rotate map to follow heading
+        if (mapRotateEnabled) {
+            rotateMap(-heading);
+        }
+    }
+
+    // Map rotation function (rotates tile container via CSS)
+    function rotateMap(degrees) {
+        mapRotation = degrees;
+        const mapContainer = document.getElementById('map');
+        const pane = mapContainer.querySelector('.leaflet-map-pane');
+        if (pane) {
+            pane.style.transform = pane.style.transform; // keep leaflet's transform
+        }
+        // Apply rotation to user icon to keep it upright when map rotates
+        const iconEl = document.getElementById('userMarkerIcon');
+        if (iconEl) {
+            iconEl.style.transform = `rotate(${userHeading - mapRotation}deg)`;
+        }
+    }
 
     // --- 3. MAP CLICK HANDLER ---
     map.on('click', (e) => {
         if (isMeasuring) {
             measurePoints.push(e.latlng);
-            L.circleMarker(e.latlng, {radius: 4, color: '#ef476f'}).addTo(measureLayer);
+            L.circleMarker(e.latlng, {radius: 5, color: '#ef476f', fillColor: '#ef476f', fillOpacity: 1}).addTo(measureLayer);
             if (measurePoints.length > 1) {
-                measureLayer.clearLayers();
-                measurePoints.forEach(p => L.circleMarker(p, {radius: 4, color: '#ef476f'}).addTo(measureLayer));
+                // Clear old lines, keep points
+                measureLayer.eachLayer(layer => {
+                    if (layer instanceof L.Polyline && !(layer instanceof L.CircleMarker)) {
+                        measureLayer.removeLayer(layer);
+                    }
+                });
                 L.polyline(measurePoints, {color: '#ef476f', dashArray: '5, 5', weight: 3}).addTo(measureLayer);
                 let dist = 0;
                 for (let i = 1; i < measurePoints.length; i++) {
                     dist += map.distance(measurePoints[i-1], measurePoints[i]);
                 }
-                map.openPopup(`<b>Distance:</b> ${formatDistance(dist)}`, e.latlng);
+                L.popup()
+                    .setLatLng(e.latlng)
+                    .setContent(`<b>Total Distance:</b> ${formatDistance(dist)}`)
+                    .openOn(map);
             }
             return;
         }
@@ -600,7 +701,7 @@
                 createMarker(e.latlng, '📌', `<b>${name}</b><br><button onclick="removeCustomLoc('${id}')" style="color:red; cursor:pointer; border:none; background:transparent; padding:4px;">Delete</button>`, id);
                 appState.customLocations.push({id, name, pos: [e.latlng.lat, e.latlng.lng]});
                 saveState(true);
-                showToast('Waypoint saved');
+                showToast('Waypoint saved: ' + name);
             }
         } else if (activeMode === 'home') {
             setHomeLocation([e.latlng.lat, e.latlng.lng]);
@@ -613,24 +714,27 @@
             saveState(true);
             showToast("Friend's house added");
         } else if (activeMode === 'friend') {
-            createMarker(e.latlng, '🏃', "<b>Walking Friend</b>");
-            appState.walkingFriends.push({pos: [e.latlng.lat, e.latlng.lng]});
-            saveState(true);
-            showToast('Walking friend added');
+            const friendName = prompt("Enter walking friend's name:", "Friend");
+            if (friendName) {
+                createMarker(e.latlng, '🏃', `<b>${friendName}</b><br><button onclick="removeWalkingFriend(${appState.walkingFriends.length})" style="color:red; cursor:pointer; border:none; background:transparent; padding:4px;">Remove</button>`);
+                appState.walkingFriends.push({name: friendName, pos: [e.latlng.lat, e.latlng.lng]});
+                saveState(true);
+                showToast('Walking friend added: ' + friendName);
+            }
         }
         toggleMode(activeMode);
     });
 
     function getHomePopupHtml() {
-        return `<div style="min-width:150px;"><b>🏠 Home Base</b><br>
-            <div style="display:flex; gap:6px; margin-top:8px;">
+        return `<div style="min-width:180px;"><b>🏠 Home Base</b><br>
+            <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
                 <button onclick="routeToHome()" style="background:var(--primary); color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:0.8em; flex:1;">Route Here</button>
+                <button onclick="routeShortcut()" style="background:var(--success); color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:0.8em; flex:1;">Shortcut</button>
                 <button onclick="removeHome()" style="background:var(--danger); color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:0.8em; flex:1;">Delete</button>
             </div></div>`;
     }
 
     function setHomeLocation(coords) {
-        // Remove old home marker
         if (homeMarker) {
             map.removeLayer(homeMarker);
             homeMarker = null;
@@ -660,7 +764,6 @@
         showToast('Location deleted');
     }
 
-    // FIXED: Home location now actually deletes
     window.removeHome = function() {
         if (!confirm("Delete your home location? You can set a new one anytime.")) return;
         if (homeMarker) {
@@ -669,6 +772,7 @@
         }
         appState.home = null;
         homePolyline.setLatLngs([]);
+        shortcutPolyline.setLatLngs([]);
         saveState(true);
         document.getElementById('etaHomeTxt').innerText = '--:--';
         showToast('Home location deleted');
@@ -676,19 +780,31 @@
 
     window.removeFriendHouse = function(idx) {
         appState.friendHouses.splice(idx, 1);
-        // Re-render all friend house markers
         map.eachLayer(layer => {
             if (layer instanceof L.Marker && layer.options.icon && layer.options.icon.options.html && layer.options.icon.options.html.includes('🏡')) {
                 map.removeLayer(layer);
             }
         });
         friendHouseLine.setLatLngs([]);
-        // Re-add remaining
         appState.friendHouses.forEach((fh, i) => {
             createMarker(fh.pos, '🏡', `<b>Friend's House</b><br><button onclick="removeFriendHouse(${i})" style="color:red; cursor:pointer; border:none; background:transparent; padding:4px;">Remove</button>`);
         });
         saveState(true);
         showToast("Friend's house removed");
+    };
+
+    window.removeWalkingFriend = function(idx) {
+        appState.walkingFriends.splice(idx, 1);
+        map.eachLayer(layer => {
+            if (layer instanceof L.Marker && layer.options.icon && layer.options.icon.options.html && layer.options.icon.options.html.includes('🏃')) {
+                map.removeLayer(layer);
+            }
+        });
+        appState.walkingFriends.forEach((wf, i) => {
+            createMarker(wf.pos, '🏃', `<b>${wf.name || 'Walking Friend'}</b><br><button onclick="removeWalkingFriend(${i})" style="color:red; cursor:pointer; border:none; background:transparent; padding:4px;">Remove</button>`);
+        });
+        saveState(true);
+        showToast('Walking friend removed');
     };
 
     window.toggleMode = function(mode) {
@@ -697,7 +813,12 @@
         if (activeMode) {
             const btnMap = { loc: 'addLocBtn', home: 'addHomeBtn', friendHouse: 'addFriendHouseBtn', friend: 'addFriendBtn' };
             document.getElementById(btnMap[mode]).classList.add('active');
-            const hints = { loc: 'Tap map to add waypoint', home: 'Tap map to set home', friendHouse: "Tap map to add friend's house", friend: 'Tap map to add walking friend' };
+            const hints = { 
+                loc: 'Tap map to add waypoint', 
+                home: 'Tap map to set home', 
+                friendHouse: "Tap map to add friend's house", 
+                friend: 'Tap map to add walking friend' 
+            };
             showToast(hints[mode]);
         }
     }
@@ -705,8 +826,11 @@
     window.toggleMeasure = function() {
         isMeasuring = !isMeasuring;
         document.getElementById('measureBtn').classList.toggle('active', isMeasuring);
-        if (!isMeasuring) { measureLayer.clearLayers(); measurePoints = []; }
-        showToast(isMeasuring ? 'Tap map to measure' : 'Measure off');
+        if (!isMeasuring) { 
+            measureLayer.clearLayers(); 
+            measurePoints = []; 
+        }
+        showToast(isMeasuring ? 'Tap map points to measure distance' : 'Measure off');
     }
 
     // --- 4. START BUTTON LOGIC ---
@@ -721,7 +845,7 @@
             return;
         }
 
-        // Request Motion & Orientation Permissions
+        // Request permissions
         if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
             try {
                 const motionPerm = await DeviceMotionEvent.requestPermission();
@@ -735,6 +859,7 @@
         } else {
             window.addEventListener('devicemotion', handleMotion);
             window.addEventListener('deviceorientationabsolute', handleOrientation);
+            window.addEventListener('deviceorientation', handleOrientation);
         }
 
         startBtn.innerText = "Pause Walk";
@@ -753,14 +878,12 @@
         startTime = new Date();
         document.getElementById('startTimeTxt').innerText = startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
-        // BATTERY OPTIMIZATION: Use maximumAge and timeout, adjust distance threshold
         const gpsOptions = {
-            enableHighAccuracy: !appState.settings.batterySaver, // Lower accuracy in battery saver
+            enableHighAccuracy: true,
             timeout: 30000,
-            maximumAge: appState.settings.batterySaver ? 5000 : 1000
+            maximumAge: 1000
         };
-        // Minimum movement threshold (battery saver = larger threshold)
-        const minMoveThreshold = appState.settings.batterySaver ? 8 : 3;
+        const minMoveThreshold = 2;
 
         watchId = navigator.geolocation.watchPosition(pos => {
             const currentCoords = [pos.coords.latitude, pos.coords.longitude];
@@ -770,11 +893,7 @@
                 lastPos = currentCoords;
                 lastTimestamp = currentTime;
                 if (!userMarker) {
-                    userMarker = L.marker(currentCoords, {icon: L.divIcon({ 
-                        className: 'pulse-marker', 
-                        html: '<div style="width:16px;height:16px;background:#4361ee;border:3px solid white;border-radius:50%;"></div>', 
-                        iconSize: [16, 16] 
-                    })}).addTo(map);
+                    createUserMarker(currentCoords, 0);
                 } else {
                     userMarker.setLatLng(currentCoords);
                 }
@@ -789,14 +908,17 @@
                 currentSpeed = (distMoved / 1000) / timeDiffHours;
                 
                 document.getElementById('distanceCount').innerText = formatDistance(totalDistance);
-                document.getElementById('speedCount').innerText = isNaN(currentSpeed) || !isFinite(currentSpeed) ? 0 : currentSpeed.toFixed(1);
+                document.getElementById('speedCount').innerText = (isNaN(currentSpeed) || !isFinite(currentSpeed)) ? '0.0' : currentSpeed.toFixed(1);
+                
+                // Calculate heading from movement
+                const heading = calculateBearing(lastPos[0], lastPos[1], currentCoords[0], currentCoords[1]);
                 
                 walkPath.push(currentCoords);
                 walkPolyline.setLatLngs(walkPath);
                 
-                // BATTERY OPTIMIZATION: Move marker instead of recreating
                 if (userMarker) {
                     userMarker.setLatLng(currentCoords);
+                    updateUserMarkerHeading(heading);
                 }
                 
                 if (appState.settings.autoCenter) map.panTo(currentCoords); 
@@ -804,10 +926,9 @@
                 lastTimestamp = currentTime;
                 appState.distance = totalDistance;
                 appState.steps = stepCount;
-                saveState(); // throttled
+                saveState();
                 updateLiveETA();
                 
-                // Update navigation if active
                 if (isNavigating && currentRoute) {
                     updateNavigationProgress(currentCoords);
                 }
@@ -818,28 +939,23 @@
         }, gpsOptions);
     });
 
-    // --- 5. ROUTE HOME LOGIC (OSRM) - FIXED ---
+    // --- 5. ROUTE HOME LOGIC ---
     document.getElementById('homeBtn').addEventListener('click', () => {
         if (!lastPos) {
             showToast('Start walking first to get your location');
             return;
         }
         if (!appState.home) {
-            // Set home to current location
             setHomeLocation(lastPos);
             showToast('Home set to current location');
             return;
         }
         
-        // Show home popup with delete option (as requested)
-        if (homeMarker) {
-            homeMarker.openPopup();
-        }
+        if (homeMarker) homeMarker.openPopup();
         
         document.getElementById('loader').style.display = 'block';
         
-        // FIXED: Proper OSRM URL and error handling
-        const url = `https://router.project-osrm.org/route/v1/foot/${lastPos[1]},${lastPos[0]};${appState.home[1]},${appState.home[0]}?overview=full&geometries=geojson&steps=true&annotations=false`;
+        const url = `https://router.project-osrm.org/route/v1/foot/${lastPos[1]},${lastPos[0]};${appState.home[1]},${appState.home[0]}?overview=full&geometries=geojson&steps=true&alternatives=true`;
         
         fetch(url)
             .then(res => {
@@ -849,7 +965,18 @@
             .then(data => {
                 document.getElementById('loader').style.display = 'none';
                 if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-                    displayRoute(data.routes[0]);
+                    // Use shortest route as main, store alternatives
+                    const mainRoute = data.routes[0];
+                    displayRoute(mainRoute);
+                    
+                    // If alternatives exist, show shortcut (alternative)
+                    if (data.routes.length > 1) {
+                        const altRoute = data.routes[1];
+                        // Only show shortcut if it's actually shorter
+                        if (altRoute.distance < mainRoute.distance) {
+                            showShortcutRoute(altRoute);
+                        }
+                    }
                 } else {
                     showToast('No route found. Drawing direct line.');
                     homePolyline.setLatLngs([lastPos, appState.home]);
@@ -864,38 +991,90 @@
             });
     });
 
+    // Show shortcut route (alternative route, displayed as green dashed line)
+    function showShortcutRoute(route) {
+        const routeCoords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+        shortcutPolyline.setLatLngs(routeCoords);
+        showingShortcut = true;
+        const dist = route.distance || 0;
+        const dur = route.duration || 0;
+        const timeMin = Math.round(dur / 60);
+        showToast(`Shortcut available: ${formatDistance(dist)}, ${timeMin} min (green line)`);
+    }
+
     window.routeToHome = function() {
         document.getElementById('homeBtn').click();
     };
 
-    // Enhanced route display with proper turn-by-turn
+    // Toggle shortcut visibility
+    window.routeShortcut = function() {
+        if (showingShortcut) {
+            shortcutPolyline.setLatLngs([]);
+            showingShortcut = false;
+            showToast('Shortcut route hidden');
+        } else {
+            // Re-fetch with alternatives
+            if (!lastPos || !appState.home) {
+                showToast('Set home and start walking first');
+                return;
+            }
+            document.getElementById('loader').style.display = 'block';
+            const url = `https://router.project-osrm.org/route/v1/foot/${lastPos[1]},${lastPos[0]};${appState.home[1]},${appState.home[0]}?overview=full&geometries=geojson&alternatives=true`;
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('loader').style.display = 'none';
+                    if (data.code === 'Ok' && data.routes && data.routes.length > 1) {
+                        // Find shortest alternative
+                        let shortest = data.routes[0];
+                        data.routes.forEach(r => {
+                            if (r.distance < shortest.distance) shortest = r;
+                        });
+                        showShortcutRoute(shortest);
+                    } else {
+                        showToast('No shortcut available');
+                    }
+                }).catch(() => {
+                    document.getElementById('loader').style.display = 'none';
+                    showToast('Could not fetch shortcut');
+                });
+        }
+    };
+
     function displayRoute(route) {
         currentRoute = route;
         const routeCoords = route.geometry.coordinates.map(c => [c[1], c[0]]);
         homePolyline.setLatLngs(routeCoords);
         map.fitBounds(homePolyline.getBounds(), { padding: [50, 50] });
         
-        // Build turn-by-turn directions
         const dirList = document.getElementById('dirListSteps');
         dirList.innerHTML = '';
         currentRouteSteps = [];
         
         const legs = route.legs || [];
+        let stepIdx = 0;
         legs.forEach(leg => {
-            (leg.steps || []).forEach((step, idx) => {
+            (leg.steps || []).forEach((step) => {
                 const instr = buildInstruction(step);
                 const distance = step.distance || 0;
-                currentRouteSteps.push({ instruction: instr.text, icon: instr.icon, distance, maneuver: step.maneuver, geometry: step.geometry });
+                currentRouteSteps.push({ 
+                    instruction: instr.text, 
+                    icon: instr.icon, 
+                    distance, 
+                    maneuver: step.maneuver, 
+                    geometry: step.geometry,
+                    index: stepIdx
+                });
                 
                 const div = document.createElement('div');
                 div.className = 'dir-step';
-                div.id = `step-${idx}`;
+                div.id = `step-${stepIdx}`;
                 div.innerHTML = `<i class="fas ${instr.icon}"></i> <span>${instr.text}</span> <span class="dist">${distance > 0 ? formatDistance(distance) : ''}</span>`;
                 dirList.appendChild(div);
+                stepIdx++;
             });
         });
         
-        // Summary
         const dist = route.distance || 0;
         const dur = route.duration || 0;
         const timeMin = Math.round(dur / 60);
@@ -905,7 +1084,7 @@
         `;
         
         let arrivalDate = new Date(Date.now() + dur * 1000);
-        document.getElementById('etaHomeTxt').innerText = arrivalDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + ` (${timeMin}m)`;
+        document.getElementById('etaHomeTxt').innerText = arrivalDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         
         document.getElementById('directionsPanel').classList.add('show');
         showToast(`Route: ${formatDistance(dist)}, ${timeMin} min`);
@@ -932,7 +1111,6 @@
                 break;
             case 'turn':
                 text = `Turn ${mod}${name ? ' onto ' + name : ''}`;
-                icon = mod.includes('left') ? 'fa-arrow-turn-up' : 'fa-arrow-turn-up';
                 icon = mod.includes('left') ? 'fa-rotate-left' : 'fa-rotate-right';
                 break;
             case 'new name':
@@ -987,15 +1165,25 @@
             showToast('Generate a route first (tap Route Home)');
             return;
         }
+        if (!lastPos) {
+            showToast('Start walking first');
+            return;
+        }
         isNavigating = !isNavigating;
         document.getElementById('navBtn').innerHTML = isNavigating ? '<i class="fas fa-stop"></i> Stop' : '<i class="fas fa-navigation"></i> Nav';
         if (isNavigating) {
             currentStepIndex = 0;
             updateNavigationProgress(lastPos);
-            showToast('Navigation started');
-            if (appState.settings.voiceNav) speak('Navigation started. ' + currentRouteSteps[0].instruction);
+            showToast('Navigation started - follow directions');
+            if (appState.settings.voiceNav && currentRouteSteps.length > 0) {
+                speak('Navigation started. ' + currentRouteSteps[0].instruction);
+            }
+            // Highlight first step
+            const firstEl = document.getElementById(`step-0`);
+            if (firstEl) firstEl.classList.add('active');
         } else {
             document.getElementById('dirNext').classList.remove('show');
+            document.querySelectorAll('.dir-step').forEach(el => el.classList.remove('active'));
             showToast('Navigation stopped');
         }
     };
@@ -1013,7 +1201,7 @@
         // Find closest step to current position
         let minDist = Infinity;
         let closestIdx = currentStepIndex;
-        for (let i = currentStepIndex; i < currentRouteSteps.length; i++) {
+        for (let i = Math.max(0, currentStepIndex - 1); i < currentRouteSteps.length; i++) {
             const step = currentRouteSteps[i];
             if (!step.geometry || !step.geometry.coordinates) continue;
             for (const coord of step.geometry.coordinates) {
@@ -1026,7 +1214,6 @@
         }
         
         if (closestIdx !== currentStepIndex) {
-            // Moved to next step
             document.querySelectorAll('.dir-step').forEach(el => el.classList.remove('active'));
             const activeEl = document.getElementById(`step-${closestIdx}`);
             if (activeEl) {
@@ -1048,7 +1235,7 @@
             
             nextEl.classList.add('show');
             nextIcon.className = 'fas dir-next-icon ' + step.icon;
-            const distInfo = step.distance > 0 ? `<small>${formatDistance(step.distance)} then</small>` : '';
+            const distInfo = step.distance > 0 ? `<small>Continue ${formatDistance(step.distance)}</small>` : '';
             const nextInfo = nextStep ? `<small>Then: ${nextStep.instruction}</small>` : '';
             nextText.innerHTML = `${step.instruction} ${distInfo} ${nextInfo}`;
         }
@@ -1059,6 +1246,7 @@
             if (appState.settings.voiceNav) speak('You have arrived at your destination');
             isNavigating = false;
             document.getElementById('dirNext').classList.remove('show');
+            document.getElementById('navBtn').innerHTML = '<i class="fas fa-navigation"></i> Nav';
         }
     }
 
@@ -1076,17 +1264,12 @@
             map.panTo(lastPos);
             map.setZoom(17);
         } else {
-            // Try one-shot location
             navigator.geolocation.getCurrentPosition(pos => {
                 lastPos = [pos.coords.latitude, pos.coords.longitude];
                 map.panTo(lastPos);
                 map.setZoom(17);
                 if (!userMarker) {
-                    userMarker = L.marker(lastPos, {icon: L.divIcon({ 
-                        className: 'pulse-marker', 
-                        html: '<div style="width:16px;height:16px;background:#4361ee;border:3px solid white;border-radius:50%;"></div>', 
-                        iconSize: [16, 16] 
-                    })}).addTo(map);
+                    createUserMarker(lastPos, 0);
                 }
             }, err => showToast('Cannot get location'), { enableHighAccuracy: true, timeout: 10000 });
         }
@@ -1100,26 +1283,6 @@
         } else {
             navigator.clipboard.writeText(url).then(() => showToast('Location link copied!')).catch(() => showToast('URL: ' + url));
         }
-    };
-
-    window.resetTrip = function() {
-        if (!confirm("Reset route history for a new walk? Home location & waypoints will be saved.")) return;
-        if (watchId) navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-        startBtn.innerText = "Start Walk";
-        startBtn.classList.remove('recording');
-        walkPath = []; walkPolyline.setLatLngs([]); homePolyline.setLatLngs([]);
-        if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
-        totalDistance = 0; stepCount = 0; currentSpeed = 0; lastPos = null; startTime = null;
-        appState.distance = 0; appState.steps = 0;
-        document.getElementById('stepsCount').innerText = "0";
-        document.getElementById('distanceCount').innerText = "0.00";
-        document.getElementById('speedCount').innerText = "0.0";
-        document.getElementById('startTimeTxt').innerText = "--:--";
-        document.getElementById('etaHomeTxt').innerText = "--:--";
-        closeDirections();
-        saveState(true);
-        showToast('Trip reset');
     };
 
     // --- 7. STEP COUNTER ---
@@ -1174,10 +1337,15 @@
     }
 
     window.showNearbyPlaces = function() {
-        if (!lastPos) return showToast('Start walking to find nearby places');
+        // Use lastPos or map center if no GPS
+        const center = lastPos || [map.getCenter().lat, map.getCenter().lng];
         document.getElementById('loader').style.display = 'block';
-        const query = `[out:json];node(around:1500,${lastPos[0]},${lastPos[1]})["amenity"~"hospital|police|bus_station|fuel|atm|restaurant|hotel|pharmacy|cafe"];out 15;`;
-        fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`)
+        const radius = 1500;
+        const query = `[out:json][timeout:25];(node(around:${radius},${center[0]},${center[1]})["amenity"~"hospital|police|bus_station|fuel|atm|restaurant|hotel|pharmacy|cafe"];node(around:${radius},${center[0]},${center[1]})["shop"~"supermarket|convenience"];);out 20;`;
+        fetch(`https://overpass-api.de/api/interpreter`, {
+            method: 'POST',
+            body: 'data=' + encodeURIComponent(query)
+        })
             .then(res => res.json())
             .then(data => {
                 document.getElementById('loader').style.display = 'none';
@@ -1185,19 +1353,32 @@
                     showToast('No nearby places found');
                     return;
                 }
+                // Clear previous nearby markers (basic - just show new ones)
                 data.elements.forEach(el => {
                     const tags = el.tags || {};
                     const name = tags.name || (tags.amenity ? tags.amenity.charAt(0).toUpperCase() + tags.amenity.slice(1) : 'Place');
-                    const iconMap = { hospital:'🏥', police:'🚓', restaurant:'🍴', hotel:'🏨', atm:'💳', fuel:'⛽', bus_station:'🚌', pharmacy:'💊', cafe:'☕' };
-                    const icon = iconMap[tags.amenity] || '📍';
-                    createMarker([el.lat, el.lon], icon, `<b>${name}</b><br>Distance: ${formatDistance(map.distance(lastPos, [el.lat, el.lon]))}`);
+                    const iconMap = { 
+                        hospital:'🏥', police:'🚓', restaurant:'🍴', hotel:'🏨', 
+                        atm:'💳', fuel:'⛽', bus_station:'🚌', pharmacy:'💊', cafe:'☕',
+                        supermarket:'🛒', convenience:'🏪'
+                    };
+                    const icon = iconMap[tags.amenity] || iconMap[tags.shop] || '📍';
+                    const distance = map.distance(center, [el.lat, el.lon]);
+                    createMarker([el.lat, el.lon], icon, `<b>${name}</b><br>Distance: ${formatDistance(distance)}`);
                 });
-                showToast(`${data.elements.length} places found`);
-            }).catch(() => {
+                showToast(`${data.elements.length} nearby places found`);
+                // Fit bounds to show all places
+                if (data.elements.length > 0) {
+                    const bounds = L.latLngBounds(data.elements.map(el => [el.lat, el.lon]));
+                    bounds.extend(center);
+                    map.fitBounds(bounds, { padding: [60, 60] });
+                }
+            }).catch((err) => {
+                console.error(err);
                 document.getElementById('loader').style.display = 'none';
-                showToast('Could not fetch nearby places');
+                showToast('Could not fetch nearby places. Try again.');
             });
-    }
+    };
 
     window.triggerSOS = function() {
         if (!lastPos) return showToast('Location not acquired. Start walking first.');
@@ -1242,53 +1423,43 @@
         reader.readAsText(file);
     }
 
-    // Compass
+    // Compass handling
     function handleOrientation(e) {
-        if (e.absolute || e.webkitCompassHeading) {
-            let heading = e.webkitCompassHeading || Math.abs(e.alpha - 360);
-            document.getElementById('compassNeedle').style.transform = `rotate(${-heading}deg)`;
+        let heading = null;
+        if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+            heading = e.webkitCompassHeading;
+        } else if (e.alpha !== null && e.absolute) {
+            heading = 360 - e.alpha;
         }
-    }
-
-    // Midnight Reset
-    function setupMidnightReset() {
-        const now = new Date();
-        const night = new Date(now);
-        night.setHours(23, 59, 59, 0);
-        const msToMidnight = night.getTime() - now.getTime();
-        setTimeout(() => {
-            if (confirm('It\'s midnight. Reset today\'s walk?')) resetTrip();
-            setupMidnightReset();
-        }, msToMidnight);
-    }
-
-    // Multi-language
-    const translations = {
-        en: { steps: "Steps", start: "Start Walk", pause: "Pause Walk" },
-        es: { steps: "Pasos", start: "Iniciar", pause: "Pausar" },
-        fr: { steps: "Pas", start: "Commencer", pause: "Pause" }
-    };
-    window.changeLanguage = function() {
-        const lang = document.getElementById('langSelect').value;
-        appState.settings.lang = lang;
-        document.querySelectorAll('[data-translate]').forEach(el => {
-            const key = el.getAttribute('data-translate');
-            if (translations[lang] && translations[lang][key]) el.innerText = translations[lang][key];
-        });
-        saveState();
-    }
-
-    function updateLiveETA() {
-        if (currentSpeed > 1 && startTime && appState.home) {
-            const distHome = lastPos ? map.distance(lastPos, appState.home) : 0;
-            if (distHome > 0) {
-                let timeHours = (distHome / 1000) / currentSpeed;
-                let timeMinutes = Math.round(timeHours * 60);
-                let arrivalDate = new Date(Date.now() + timeMinutes * 60000);
-                document.getElementById('etaHomeTxt').innerText = `${arrivalDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} (${timeMinutes}m)`;
+        if (heading !== null) {
+            document.getElementById('compassNeedle').style.transform = `rotate(${-heading}deg)`;
+            // If map rotation enabled, follow compass
+            if (mapRotateEnabled && !watchId) {
+                // Only follow compass heading when not walking (when walking, use GPS heading)
+                rotateMap(-heading);
             }
         }
     }
+
+    // Map rotation toggle
+    window.toggleMapRotation = function() {
+        mapRotateEnabled = !mapRotateEnabled;
+        appState.settings.mapRotate = mapRotateEnabled;
+        document.getElementById('mapRotateToggle').checked = mapRotateEnabled;
+        saveState(true);
+        if (!mapRotateEnabled) {
+            rotateMap(0);
+        }
+        showToast(mapRotateEnabled ? 'Map rotation ON' : 'Map rotation OFF');
+    };
+
+    window.toggleMapRotationSetting = function() {
+        mapRotateEnabled = document.getElementById('mapRotateToggle').checked;
+        appState.settings.mapRotate = mapRotateEnabled;
+        saveState(true);
+        if (!mapRotateEnabled) rotateMap(0);
+        showToast(mapRotateEnabled ? 'Map rotation ON' : 'Map rotation OFF');
+    };
 
     // --- 9. SETTINGS ---
     window.openSettings = function() {
@@ -1296,19 +1467,6 @@
     };
     window.closeSettings = function() {
         document.getElementById('settingsModal').classList.remove('show');
-    };
-
-    window.toggleBatterySaver = function() {
-        appState.settings.batterySaver = document.getElementById('batterySaverToggle').checked;
-        document.body.classList.toggle('battery-saver-active', appState.settings.batterySaver);
-        saveState(true);
-        showToast(appState.settings.batterySaver ? 'Battery saver ON' : 'Battery saver OFF');
-    };
-
-    window.toggleDarkMode = function() {
-        appState.settings.darkMode = document.getElementById('darkModeToggle').checked;
-        document.body.classList.toggle('dark-mode', appState.settings.darkMode);
-        saveState(true);
     };
 
     window.toggleVoiceNav = function() {
@@ -1320,7 +1478,6 @@
     window.toggleUnits = function() {
         appState.settings.imperial = document.getElementById('imperialToggle').checked;
         updateUnits();
-        // Refresh displays
         document.getElementById('distanceCount').innerText = formatDistance(totalDistance);
         saveState(true);
     };
@@ -1330,12 +1487,44 @@
         saveState(true);
     };
 
+    // Clear All Data - PRESERVES route map (walkPolyline)
     window.clearAllData = function() {
-        if (!confirm('Delete ALL data including home, waypoints, friends, and history? This cannot be undone.')) return;
-        if (!confirm('Are you absolutely sure? All saved locations will be lost.')) return;
-        localStorage.removeItem(STORAGE_KEY);
-        showToast('All data cleared. Reloading...');
-        setTimeout(() => location.reload(), 1500);
+        if (!confirm('Delete all saved locations (home, waypoints, friends) and reset stats?\n\nYour current route map (walked path) will be PRESERVED.')) return;
+        if (!confirm('Are you absolutely sure? Saved locations will be lost, but your route map stays.')) return;
+        
+        // Clear saved locations
+        appState.home = null;
+        appState.favorites = [];
+        appState.customLocations = [];
+        appState.friendHouses = [];
+        appState.walkingFriends = [];
+        // Reset daily stats only
+        appState.steps = 0;
+        appState.distance = 0;
+        // PRESERVE walkPath (route map)
+        
+        // Remove markers but keep walk polyline
+        if (homeMarker) { map.removeLayer(homeMarker); homeMarker = null; }
+        // Remove all markers except user marker
+        map.eachLayer(layer => {
+            if (layer instanceof L.Marker && layer !== userMarker) {
+                map.removeLayer(layer);
+            }
+        });
+        // Clear home route polylines (route line, shortcut) but keep walk path
+        homePolyline.setLatLngs([]);
+        shortcutPolyline.setLatLngs([]);
+        friendHouseLine.setLatLngs([]);
+        
+        stepCount = 0;
+        totalDistance = 0;
+        document.getElementById('stepsCount').innerText = "0";
+        document.getElementById('distanceCount').innerText = "0.00";
+        document.getElementById('speedCount').innerText = "0.0";
+        document.getElementById('etaHomeTxt').innerText = "--:--";
+        
+        saveState(true);
+        showToast('All data cleared. Route map preserved.');
     };
 
     function updateUnits() {
@@ -1348,12 +1537,15 @@
         }
     }
 
+    // Fixed format distance - properly handles meters and km
     function formatDistance(meters) {
+        if (meters == null || isNaN(meters)) return '0 m';
         if (appState.settings.imperial) {
             const miles = meters * 0.000621371;
             if (miles < 0.1) return Math.round(meters * 3.281) + ' ft';
             return miles.toFixed(2) + ' mi';
         }
+        // Metric: m for <1000, km for >=1000
         if (meters < 1000) return Math.round(meters) + ' m';
         return (meters / 1000).toFixed(2) + ' km';
     }
@@ -1368,24 +1560,26 @@
         toastTimeout = setTimeout(() => t.classList.remove('show'), 2500);
     }
 
-    // Click outside modal to close
     document.getElementById('settingsModal').addEventListener('click', (e) => {
         if (e.target.id === 'settingsModal') closeSettings();
     });
 
-    // Pause GPS when tab hidden (battery saving)
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden && watchId) {
-            // Don't clear watch but reduce updates naturally
-            console.log('App backgrounded - GPS continues for walk tracking');
+    function updateLiveETA() {
+        if (currentSpeed > 1 && startTime && appState.home) {
+            const distHome = lastPos ? map.distance(lastPos, appState.home) : 0;
+            if (distHome > 0) {
+                let timeHours = (distHome / 1000) / currentSpeed;
+                let timeMinutes = Math.round(timeHours * 60);
+                let arrivalDate = new Date(Date.now() + timeMinutes * 60000);
+                document.getElementById('etaHomeTxt').innerText = `${arrivalDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+            }
         }
-    });
+    }
 
     // Init App
     loadState();
     changeMapStyle();
-    changeLanguage();
-    setupMidnightReset();
+    checkDailyReset();
     
     // Try to get initial location
     navigator.geolocation.getCurrentPosition(pos => {
@@ -1393,11 +1587,7 @@
         map.setView(coords, 16);
         lastPos = coords;
         if (!userMarker) {
-            userMarker = L.marker(coords, {icon: L.divIcon({ 
-                className: 'pulse-marker', 
-                html: '<div style="width:16px;height:16px;background:#4361ee;border:3px solid white;border-radius:50%;"></div>', 
-                iconSize: [16, 16] 
-            })}).addTo(map);
+            createUserMarker(coords, 0);
         }
     }, err => {
         console.log('Initial location denied or unavailable');
